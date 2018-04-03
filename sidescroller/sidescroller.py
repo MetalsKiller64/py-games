@@ -26,9 +26,9 @@ class Player():
 		self.floater = None
 		self.jump_block = False
 		self.block_cycle = 0
+		self.exit_reached = False
 	
 	def jump(self):
-		print ("jump")
 		self.floating = False
 		self.floater = None
 		self.jumping = True
@@ -48,9 +48,10 @@ class Player():
 			self.jump_cycle = 0
 			return
 		self.jump_cycle += 1
+		if self.p_rect.colliderect(exit):
+			self.exit_reached = True
 	
 	def fall(self):
-		print ("fall")
 		self.p_rect.y += 4
 		for name in obstacles:
 			obstacle = obstacles[name]
@@ -62,6 +63,8 @@ class Player():
 					self.floating = True
 					self.floater = name
 				return
+		if self.p_rect.colliderect(exit):
+			self.exit_reached = True
 	
 	def float(self):
 		f = floaters[self.floater]
@@ -72,6 +75,8 @@ class Player():
 		else:
 			#self.p_rect.x -= 1
 			self.move("left", 2)
+		if self.p_rect.colliderect(exit):
+			self.exit_reached = True
 
 	def check_ground(self):
 		last_floor = None
@@ -84,16 +89,16 @@ class Player():
 			self.floating = False
 		else:
 			self.last_floor = last_floor
+		if self.p_rect.colliderect(exit):
+			self.exit_reached = True
 	
 	def move(self, direction, speed = 2):
-		print ("move "+direction)
-		print (self.level_pos)
 		self.floating = False
 		self.floater = None
 		if direction == "left":
 			if self.p_rect.x <= 100 and self.level_pos >= 100:
-				for name in obstacles:
-					o = obstacles[name]
+				for name in objects:
+					o = objects[name]
 					cx = o.x
 					o.x = cx + speed
 				self.p_rect.x = 100
@@ -101,8 +106,8 @@ class Player():
 				for name in obstacles:
 					obstacle = obstacles[name]
 					if self.p_rect.colliderect(obstacle):
-						for n in obstacles:
-							o = obstacles[n]
+						for n in objects:
+							o = objects[n]
 							cx = o.x
 							o.x = cx - speed
 						self.p_rect.x = 100
@@ -117,8 +122,8 @@ class Player():
 						self.level_pos += speed
 		elif direction == "right":
 			if self.p_rect.x >= 300 and self.level_pos <= (level_width - 100):
-				for name in obstacles:
-					o = obstacles[name]
+				for name in objects:
+					o = objects[name]
 					cx = o.x
 					o.x = cx - speed
 				self.p_rect.x = 300
@@ -126,8 +131,8 @@ class Player():
 				for name in obstacles:
 					obstacle = obstacles[name]
 					if self.p_rect.colliderect(obstacle):
-						for n in obstacles:
-							o = obstacles[n]
+						for n in objects:
+							o = objects[n]
 							cx = o.x
 							o.x = cx + speed
 						self.p_rect.x = 300
@@ -143,6 +148,8 @@ class Player():
 		if self.last_floor:
 			if not self.p_rect.colliderect(self.last_floor):
 				self.falling = True
+		if self.p_rect.colliderect(exit):
+			self.exit_reached = True
 
 
 def show_end():
@@ -164,8 +171,8 @@ def respawn():
 	p.p_rect.y = 250
 	p.level_pos = 10
 	p.falling = True
-	exit, obstacles, level_width, floaters = load_level("level")
-	return exit, obstacles, level_width, floaters
+	exit, obstacles, objects, level_width, floaters = load_level("level")
+	return exit, obstacles, objects, level_width, floaters
 
 def load_level(name):
 	f = open(name+".json")
@@ -174,7 +181,8 @@ def load_level(name):
 	level_width = j["level_width"]
 	e = j["exit"]
 	exit = pygame.Rect(int(e[0]), int(e[1]), int(e[2]), int(e[3]))
-	obstacles = {"exit": exit}
+	obstacles = {}
+	objects = {"exit": exit}
 	floaters = {}
 	ob = j["obstacles"]
 	for k in ob:
@@ -190,18 +198,20 @@ def load_level(name):
 			level_pos = float_min
 		else:
 			level_pos = float_max
-		obstacles[k] = pygame.Rect(x, y, w, h)
+		rect = pygame.Rect(x, y, w, h)
+		obstacles[k] = rect
+		objects[k] = rect
 		if floating:
 			f = {"name": k,
 			 "min": float_min, "max": float_max,
 			 "direction": direction, "level_pos": level_pos,
 			 "level_pos_min": float_min, "level_pos_max": float_max}
 			floaters[k] = f
-	return exit, obstacles, level_width, floaters
+	return exit, obstacles, objects, level_width, floaters
 
 ending = False
 font = pygame.font.SysFont("comicsansms", 30)
-exit, obstacles, level_width, floaters = load_level("level")
+exit, obstacles, objects, level_width, floaters = load_level("level")
 p = Player()
 
 while not done:
@@ -252,6 +262,9 @@ while not done:
 		p.move("right")
 	
 	if p.p_rect.colliderect(exit):
+		p.exit_reached = True
+	
+	if p.exit_reached:
 		show_end()
 		ending = True
 
@@ -261,7 +274,7 @@ while not done:
 			show_gameover()
 		else:
 			p.lives -= 1
-			exit, obstacles, level_width, floaters = respawn()
+			exit, obstacles, objects, level_width, floaters = respawn()
 	if p.jumping:
 		p.jump()
 	elif p.falling:
