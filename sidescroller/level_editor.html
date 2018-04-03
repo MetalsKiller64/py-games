@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<script src="js/konva.min.js"></script>
+		<script src="js/jquery.min.js"></script>
+		<style>
+			.buttons {
+				margin-top: 15px;
+			}
+			
+			.error {
+				border: solid red;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="sizer">
+			<input id="width" type="number"></input> X 
+			<input id="height" type="number" disabled="true" value="300"></input>
+			<button style="margin-top: 10px;" onclick="create_stage()">Anlegen</button>
+			<a id="download_json">Download JSON</a>
+		</div>
+		<div class="buttons">
+			<button id="spawn" onclick="add_box(7, 20, '#FFFFFF', 'spawn')">Start-Punkt</button>
+			<button id="box1" onclick="add_box(30, 30, '#00D2FF')">30x30</button>
+			<button id="box2" onclick="add_box(60, 60, '#00D2FF')">60x60</button>
+			<button id="box3" onclick="add_box(100, 10, '#00D2FF')">100x10</button>
+			<button id="spawn" onclick="add_box(7, 20, '#8EFF8A', 'exit')">Ausgang</button>
+			<button id="save" onclick="save()">Speichern</button>
+			<div style="margin-top: 15px">
+				<input id="custom_width" type="number" value="10"/>X
+				<input id="custom_height" type="number" value="10"/>
+				<button id="custom_box" onclick="add_custom_box()">eigene</button>
+			</div>
+		</div>
+		<div id="container" class="container"></div>
+		
+		<script>
+			var stage = undefined;
+			var level_json = {"obstacles": {}, "exit": undefined, "spawn": undefined, "level_width": 1000};
+			var objects = [];
+			var spawn = undefined;
+			var exit = undefined;
+			
+			function save()
+			{
+				for (index in objects)
+				{
+					var obj = objects[index];
+					var attrs = obj.attrs;
+					var x = attrs.x;
+					var y = attrs.y;
+					var width = attrs.width;
+					var height = attrs.height;
+					level_json["obstacles"][index] = [x, y ,width, height, 0, 0, 0, ""];
+				}
+				
+				var spawn_x = spawn.attrs.x;
+				var spawn_y = spawn.attrs.y;
+				level_json["spawn"] = [spawn_x, spawn_y, spawn_x];
+				
+				var exit_x = exit.attrs.x;
+				var exit_y = exit.attrs.y;
+				var exit_w = exit.attrs.width;
+				var exit_h = exit.attrs.height;
+				level_json["exit"] = [exit_x, exit_y, exit_w, exit_h];
+				
+				var json_obj = JSON.stringify(level_json, null, 4);
+				var blob = new Blob([json_obj], {type: "application/json"});
+				var url  = URL.createObjectURL(blob);
+				
+				var a = document.getElementById("download_json");
+				a.download = "level.json";
+				a.href = url;
+				a.textContent = "Download JSON";
+			}
+			
+			function create_stage()
+			{
+				var width = $("#width").val();
+				var height = $("#height").val();
+				if (width == "")
+				{
+					if ($("#width").hasClass("error") == false)
+					{
+						$("#width").addClass("error");
+					}
+					return
+				}
+				if ($("#width").hasClass("error") == true)
+				{
+					$("#width").removeClass("error");
+				}
+				level_json["level_width"] = width;
+				
+				stage = new Konva.Stage({
+					container: 'container',
+					width: width,
+					height: height
+				});
+				
+				$(".konvajs-content").attr("style", ($(".konvajs-content").attr("style") + " border: solid;" ));
+			}
+			
+			function add_custom_box()
+			{
+				console.log("add custom");
+				var width = $("#custom_width").val();
+				var height = $("#custom_height").val();
+				console.log(width);
+				console.log(height);
+				add_box(width, height, "#FB8AFF");
+			}
+			
+			function add_box(box_width, box_height, color, type = "box")
+			{				
+				var rectX = stage.getWidth() / 2 - 50;
+				var rectY = stage.getHeight() / 2 - 25;
+				
+				var box = new Konva.Rect({
+					x: rectX,
+					y: rectY,
+					width: box_width,
+					height: box_height,
+					fill: color,
+					stroke: 'black',
+					strokeWidth: 4,
+					draggable: true
+				});
+				
+				box.on('mouseover', function() {
+					document.body.style.cursor = 'pointer';
+				});
+				box.on('mouseout', function() {
+					document.body.style.cursor = 'default';
+				});
+				
+				var layer = new Konva.Layer();
+				layer.add(box);
+				stage.add(layer);
+				if (type == "box")
+				{
+					objects.push(box);
+				}
+				else if (type == "spawn")
+				{
+					spawn = box;
+				}
+				else if (type == "exit")
+				{
+					exit = box;
+				}
+			}
+		</script>
+	</body>
+</html>

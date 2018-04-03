@@ -13,8 +13,8 @@ jump_cycle = 0
 floor = ""
 
 class Player():
-	def __init__(self):
-		self.p_rect = pygame.Rect(10, 250, 7, 20)
+	def __init__(self, spawn_x, spawn_y):
+		self.p_rect = pygame.Rect(spawn_x, spawn_y, 7, 20)
 		self.p_height = 20
 		self.falling = True
 		self.jumping = False
@@ -167,18 +167,20 @@ def show_live_count():
 	screen.blit(text, (50 - text.get_width() // 2, 10 - text.get_height() // 2))
 
 def respawn():
-	p.p_rect.x = 10
-	p.p_rect.y = 250
-	p.level_pos = 10
+	p.p_rect.x = spawn_x
+	p.p_rect.y = spawn_y
+	p.level_pos = spawn_x
 	p.falling = True
-	exit, obstacles, objects, level_width, floaters = load_level("level")
-	return exit, obstacles, objects, level_width, floaters
+	exit, obstacles, objects, spawn, level_width, floaters = load_level("level")
+	return exit, obstacles, objects, spawn, level_width, floaters
 
 def load_level(name):
 	f = open(name+".json")
 	j = json.load(f)
 	f.close()
-	level_width = j["level_width"]
+	level_width = int(j["level_width"])
+	s = j["spawn"]
+	spawn = [int(s[0]), int(s[1])]
 	e = j["exit"]
 	exit = pygame.Rect(int(e[0]), int(e[1]), int(e[2]), int(e[3]))
 	obstacles = {}
@@ -207,12 +209,14 @@ def load_level(name):
 			 "direction": direction, "level_pos": level_pos,
 			 "level_pos_min": float_min, "level_pos_max": float_max}
 			floaters[k] = f
-	return exit, obstacles, objects, level_width, floaters
+	return exit, obstacles, objects, spawn, level_width, floaters
 
 ending = False
 font = pygame.font.SysFont("comicsansms", 30)
-exit, obstacles, objects, level_width, floaters = load_level("level")
-p = Player()
+exit, obstacles, objects, spawn, level_width, floaters = load_level("level")
+spawn_x = spawn[0]
+spawn_y = spawn[1]
+p = Player(spawn_x, spawn_y)
 
 while not done:
 	for event in pygame.event.get():
@@ -269,12 +273,11 @@ while not done:
 		ending = True
 
 	if p.p_rect.y >= 300:
-		print (p.lives)
 		if p.lives <= 0:
 			show_gameover()
 		else:
 			p.lives -= 1
-			exit, obstacles, objects, level_width, floaters = respawn()
+			exit, obstacles, objects, spawn, level_width, floaters = respawn()
 	if p.jumping:
 		p.jump()
 	elif p.falling:
