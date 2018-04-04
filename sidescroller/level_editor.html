@@ -119,6 +119,10 @@
 			
 			function recreate_stage(new_objects)
 			{
+				if (new_objects.length == 0)
+				{
+					return;
+				}
 				var w = stage.attrs.width;
 				var h = stage.attrs.height;
 				create_stage(w, h);
