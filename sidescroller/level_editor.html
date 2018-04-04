@@ -33,15 +33,23 @@
 				<input id="custom_height" type="number" value="10"/>
 				<button id="custom_box" onclick="add_custom_box()">eigene</button>
 			</div>
+			<button id="delete" onclick="delete_box()">entfernen</button>
 		</div>
 		<div id="container" class="container"></div>
 		
 		<script>
+			/*$(window).click(function(e) {
+				var x = e.clientX, y = e.clientY,
+				elementMouseIsOver = document.elementFromPoint(x, y);
+				console.log(elementMouseIsOver.attrs.x);
+			});*/
+			
 			var stage = undefined;
 			var level_json = {"obstacles": {}, "exit": undefined, "spawn": undefined, "level_width": 1000};
 			var objects = [];
 			var spawn = undefined;
 			var exit = undefined;
+			var last_selected = undefined;
 			
 			function save()
 			{
@@ -76,10 +84,16 @@
 				a.textContent = "Download JSON";
 			}
 			
-			function create_stage()
+			function create_stage(width = undefined, height = undefined)
 			{
-				var width = $("#width").val();
-				var height = $("#height").val();
+				if (width == undefined)
+				{
+					var width = $("#width").val();
+				}
+				if (height == undefined)
+				{
+					var height = $("#height").val();
+				}
 				if (width == "")
 				{
 					if ($("#width").hasClass("error") == false)
@@ -103,6 +117,42 @@
 				$(".konvajs-content").attr("style", ($(".konvajs-content").attr("style") + " border: solid;" ));
 			}
 			
+			function recreate_stage(new_objects)
+			{
+				var w = stage.attrs.width;
+				var h = stage.attrs.height;
+				create_stage(w, h);
+				objects = [];
+				for (index in new_objects)
+				{
+					var obj = new_objects[index];
+					var x = obj.attrs.x;
+					var y = obj.attrs.y;
+					var w = obj.attrs.width;
+					var h = obj.attrs.height;
+					var c = obj.attrs.fill;
+					add_box(w, h, c, "box", x, y);
+				}
+				if (spawn != undefined)
+				{
+					var sx = spawn.attrs.x;
+					var sy = spawn.attrs.y;
+					var sw = spawn.attrs.width;
+					var sh = spawn.attrs.height;
+					var sc = spawn.attrs.fill;
+					add_box(sw, sh, sc, "spawn", sx, sy);
+				}
+				if (exit != undefined)
+				{
+					var ex = exit.attrs.x;
+					var ey = exit.attrs.y;
+					var ew = exit.attrs.width;
+					var eh = exit.attrs.height;
+					var ec = exit.attrs.fill;
+					add_box(ew, eh, ec, "exit", ex, ey);
+				}
+			}
+			
 			function add_custom_box()
 			{
 				console.log("add custom");
@@ -113,10 +163,19 @@
 				add_box(width, height, "#FB8AFF");
 			}
 			
-			function add_box(box_width, box_height, color, type = "box")
-			{				
-				var rectX = stage.getWidth() / 2 - 50;
-				var rectY = stage.getHeight() / 2 - 25;
+			function add_box(box_width, box_height, color, type = "box", box_x = undefined, box_y = undefined)
+			{
+				
+				rectX = box_x;
+				rectY = box_y;
+				if (box_x == undefined)
+				{
+					var rectX = stage.getWidth() / 2 - 50;
+				}
+				if (box_y == undefined)
+				{
+					var rectY = stage.getHeight() / 2 - 25;
+				}
 				
 				var box = new Konva.Rect({
 					x: rectX,
@@ -135,6 +194,11 @@
 				box.on('mouseout', function() {
 					document.body.style.cursor = 'default';
 				});
+				box.on('click', function(event) {
+					last_selected = event.target;
+					console.log(event.target.attrs);
+				});
+
 				
 				var layer = new Konva.Layer();
 				layer.add(box);
@@ -152,6 +216,25 @@
 					exit = box;
 				}
 			}
+		
+		function delete_box()
+		{
+			var new_objects = [];
+			if (last_selected != undefined)
+			{
+				for (index in objects)
+				{
+					var obj = objects[index];
+					if (obj == last_selected)
+					{
+						continue
+					}
+					new_objects.push(obj);
+				}
+			}
+			last_selected = undefined;
+			recreate_stage(new_objects);
+		}
 		</script>
 	</body>
 </html>
