@@ -36,8 +36,10 @@
 				<input id="custom_width" type="number" value="10"/>X
 				<input id="custom_height" type="number" value="10"/>
 				<button id="custom_box" onclick="add_custom_box()">eigene</button>
+				<button id="float" onclick="add_float(60, 10, '+')">schwebe (r)</button>
+				<button id="float" onclick="add_float(60, 10, '-')">schwebe (l)</button>
 			</div>
-			<button id="delete" onclick="delete_box()">entfernen</button>
+			<button id="delete" onclick="delete_object()">entfernen</button>
 		</div>
 		<div id="container" class="container"></div>
 		
@@ -51,6 +53,7 @@
 			var stage = undefined;
 			var level_json = {"obstacles": {}, "exit": undefined, "spawn": undefined, "level_width": 1000};
 			var objects = [];
+			var floats = [];
 			var spawn = undefined;
 			var exit = undefined;
 			var last_selected = undefined;
@@ -65,7 +68,24 @@
 					var y = attrs.y;
 					var width = attrs.width;
 					var height = attrs.height;
-					level_json["obstacles"][index] = [x, y ,width, height, 0, 0, 0, ""];
+					var object_name = index.toString() + Math.random().toString(36).substring(2);
+					level_json["obstacles"][object_name] = [x, y ,width, height, 0, 0, 0, ""];
+				}
+				
+				for (index in floats)
+				{
+					var obj = floats[index];
+					var float = obj[0];
+					var parent_attrs = float.parent.attrs
+					var max_x = parent_attrs.x + 100;
+					var direction = obj[1];
+					var attrs = float.attrs;
+					var x = parent_attrs.x;
+					var y = parent_attrs.y;
+					var width = attrs.width;
+					var height = attrs.height;
+					var object_name = index.toString() + Math.random().toString(36).substring(2);
+					level_json["obstacles"][object_name] = [x, y ,width, height, 1, x, max_x, direction];
 				}
 				
 				var spawn_x = spawn.attrs.x;
@@ -121,12 +141,13 @@
 				$(".konvajs-content").attr("style", ($(".konvajs-content").attr("style") + " border: solid;" ));
 			}
 			
-			function recreate_stage(new_objects)
+			function recreate_stage(new_objects, new_floats)
 			{
 				var w = stage.attrs.width;
 				var h = stage.attrs.height;
 				create_stage(w, h);
 				objects = [];
+				floats = [];
 				for (index in new_objects)
 				{
 					var obj = new_objects[index];
@@ -137,6 +158,21 @@
 					var c = obj.attrs.fill;
 					add_box(w, h, c, "box", x, y);
 				}
+				for (index in new_floats)
+				{
+					var float = new_floats[index];
+					var obj = float[0];
+					var direction = float[1];
+					var parent = float[2];
+					var parent_attrs = parent.attrs;
+					var w = obj.attrs.width;
+					var h = obj.attrs.height;
+					var x = parent_attrs.x;
+					var y = parent_attrs.y;
+					var c = obj.attrs.fill;
+					add_float(w, h, direction, c, x, y);
+				}
+				
 				if (spawn != undefined)
 				{
 					var sx = spawn.attrs.x;
@@ -221,24 +257,97 @@
 				}
 			}
 		
-		function delete_box()
-		{
-			var new_objects = [];
-			if (last_selected != undefined)
+			function delete_object()
 			{
-				for (index in objects)
+				var new_objects = [];
+				var new_floats = [];
+				if (last_selected != undefined)
 				{
-					var obj = objects[index];
-					if (obj == last_selected)
+					for (index in objects)
 					{
-						continue
+						var obj = objects[index];
+						if (obj == last_selected)
+						{
+							continue
+						}
+						new_objects.push(obj);
 					}
-					new_objects.push(obj);
+					
+					for (index in floats)
+					{
+						var float = floats[index];
+						var obj = float[0];
+						var direction = float[1];
+						var parent = float[2];
+						if (obj == last_selected)
+						{
+							continue
+						}
+						new_floats.push([obj, direction, parent]);
+					}
+					last_selected = undefined;
+					console.log(new_objects);
+					console.log(new_floats);
+					recreate_stage(new_objects, new_floats);
 				}
-				last_selected = undefined;
-				recreate_stage(new_objects);
 			}
-		}
+			
+			function add_float(fwidth, fheight, direction, color = "#00D2FF", group_x = undefined, group_y = undefined)
+			{	
+				var group = new Konva.Group();
+				group.setAttr("draggable", true);
+				var float = new Konva.Rect({
+					x: 0,
+					y: 0,
+					width: fwidth,
+					height: fheight,
+					fill: color,
+					stroke: 'black',
+					strokeWidth: 4,
+					draggable: false
+				});
+				float.on('mouseover', function() {
+					document.body.style.cursor = 'pointer';
+				});
+				float.on('mouseout', function() {
+					document.body.style.cursor = 'default';
+				});
+				float.on('click', function(event) {
+					last_selected = event.target;
+					console.log(event.target.attrs);
+				});
+				
+				var rwidth = fwidth +100;
+				var rx = 0
+				if (direction == "-")
+				{
+					rx = -100;
+				}
+				var range = new Konva.Rect({
+					x: rx,
+					y: 0,
+					width: rwidth,
+					height: fheight,
+					fill: '#F3C2FF',
+					draggable: false
+				});
+				
+				group.add(range);
+				group.add(float);
+				
+				if (group_x != undefined)
+				{
+					group.attrs.x = group_x;
+				}
+				if (group_y != undefined)
+				{
+					group.attrs.y = group_y;
+				}
+				var layer = new Konva.Layer();
+				layer.add(group);
+				stage.add(layer);
+				floats.push([float, direction, float.parent]);
+			}
 		</script>
 	</body>
 </html>
