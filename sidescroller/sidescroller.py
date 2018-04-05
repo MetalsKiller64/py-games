@@ -198,7 +198,7 @@ def load_level(name):
 		direction = ob[k][7]
 		if direction == "+":
 			level_pos = float_min
-		else:
+		elif direction == "-":
 			level_pos = float_max
 		rect = pygame.Rect(x, y, w, h)
 		obstacles[k] = rect
