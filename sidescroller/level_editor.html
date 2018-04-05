@@ -343,6 +343,11 @@
 				{
 					group.attrs.y = group_y;
 				}
+				if (group_x == undefined && group_y == undefined)
+				{
+					group.attrs.x = stage.getWidth() / 2 - 50;
+					group.attrs.y = stage.getHeight() / 2 - 25;
+				}
 				var layer = new Konva.Layer();
 				layer.add(group);
 				stage.add(layer);
