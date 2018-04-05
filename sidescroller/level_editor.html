@@ -235,7 +235,14 @@
 					document.body.style.cursor = 'default';
 				});
 				box.on('click', function(event) {
+					if (last_selected != undefined)
+					{
+						last_selected.attrs.stroke = "black";
+						last_selected.draw();
+					}
 					last_selected = event.target;
+					event.target.attrs.stroke = "green";
+					event.target.draw();
 					console.log(event.target.attrs);
 				});
 
@@ -313,7 +320,14 @@
 					document.body.style.cursor = 'default';
 				});
 				float.on('click', function(event) {
+					if (last_selected != undefined)
+					{
+						last_selected.attrs.stroke = "black";
+						last_selected.draw();
+					}
 					last_selected = event.target;
+					event.target.attrs.stroke = "green";
+					event.target.draw();
 					console.log(event.target.attrs);
 				});
 				
