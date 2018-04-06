@@ -14,7 +14,6 @@ floor = ""
 
 class Player(pygame.sprite.Sprite):
 	def __init__(self, spawn_x, spawn_y):
-		#self.p_rect = pygame.Rect(spawn_x, spawn_y, 7, 20)
 		pygame.sprite.Sprite.__init__(self)
 		self.image = pygame.Surface([7, 20])
 		self.image.fill((255, 7, 0))
@@ -24,9 +23,6 @@ class Player(pygame.sprite.Sprite):
 		self.rect.y = spawn_y
 		self.mask = pygame.mask.from_surface(self.image)
 		self.mask.fill()
-		#pygame.draw.rect(self.image, (255, 7, 0), self.p_rect)
-		#self.rect = self.p_rect
-		##sprites.add(self)
 		
 		self.p_height = 20
 		self.falling = True
@@ -41,10 +37,9 @@ class Player(pygame.sprite.Sprite):
 		self.block_cycle = 0
 		self.stop_x_movement = False
 		self.exit_reached = False
-		
+	
 	def draw(self, surface):
 		self.rect = self.rect.clamp(surface.get_rect())
-		#print (self.rect.y)
 		surface.blit(self.image, self.rect)
 	
 	def handle_phys(self):
@@ -83,52 +78,16 @@ class Player(pygame.sprite.Sprite):
 			self.falling = True
 			self.jump_cycle = 0
 			return
-		"""if self.jump_cycle < 15:
-			for name in obstacles:
-				o = obstacles[name]
-				if self.p_rect.colliderect(o):
-					self.jumping = False
-					self.falling = True
-					self.jump_cycle = 0
-					return
-			self.p_rect.y -= 4
-		else:
-			self.jumping = False
-			self.falling = True
-			self.jump_cycle = 0
-			return
-		"""
 		self.jump_cycle += 1
-		#if self.rect.colliderect(exit):
-		#	self.exit_reached = True
 	
 	def fall(self):
-		## TODO: kollisions-punkte an der unterkante des player-objects für bessere differenzierung von boden und anderen objekten
-		#self.rect.y += 4
 		self.move("down", 4)
-		"""for name in obstacles:
-			obstacle = obstacles[name]
-			r = obstacle.rect
-			if self.rect.colliderect(r):
-				self.falling = False
-				self.rect.y = r.y - self.p_height
-				self.last_floor = obstacle
-				if name in floaters:
-					self.floating = True
-					self.floater = name
-				return
-		if self.rect.colliderect(exit):
-			self.exit_reached = True
-		"""
 	
 	def float(self):
-		#f = floaters[self.floater]
 		direction = self.float_direction
 		if direction == "+":
-			#self.p_rect.x += 1
 			self.move("right", 1)
 		elif direction == "-":
-			#self.p_rect.x -= 1
 			self.move("left", 1)
 		elif direction == "u":
 			self.move("up", 1)
@@ -136,18 +95,9 @@ class Player(pygame.sprite.Sprite):
 			self.move("down", 1)
 
 	def check_ground(self):
-		#last_floor = None
-		#for name in obstacles:
-		#	o = obstacles[name]
-		#	if self.rect.colliderect(o):
-		#		last_floor = o
 		if self.last_floor == None:
 			self.falling = True
 			self.floating = False
-		#else:
-		#	self.last_floor = last_floor
-		#if self.rect.colliderect(exit):
-		#	self.exit_reached = True
 	
 	def move(self, direction, speed = 1, force = False):
 		#print ("move "+direction)
@@ -181,78 +131,6 @@ class Player(pygame.sprite.Sprite):
 		elif direction == "down":
 			self.rect.y += speed
 			hitbox.rect.y += speed
-		
-		"""
-		self.floating = False
-		self.floater = None
-		if direction == "left":
-			if self.rect.x <= 100 and self.level_pos >= 100:
-				for name in objects:
-					o = objects[name]
-					cx = o.x
-					o.x = cx + speed
-				self.rect.x = 100
-				self.level_pos -= speed
-				for name in obstacles:
-					obstacle = obstacles[name]
-					if self.rect.colliderect(obstacle):
-						for n in objects:
-							o = objects[n]
-							cx = o.x
-							o.x = cx - speed
-						self.rect.x = 100
-						self.level_pos += speed
-			else:
-				self.rect.x -= speed
-				self.level_pos -= speed
-				for name in obstacles:
-					obstacle = obstacles[name]
-					if self.rect.colliderect(obstacle):
-						self.rect.x += speed
-						self.level_pos += speed
-		elif direction == "right":
-			if self.rect.x >= 300 and self.level_pos <= (level_width - 100):
-				for name in objects:
-					o = objects[name]
-					cx = o.x
-					o.x = cx - speed
-				self.rect.x = 300
-				self.level_pos += speed
-				for name in obstacles:
-					obstacle = obstacles[name]
-					if self.rect.colliderect(obstacle):
-						for n in objects:
-							o = objects[n]
-							cx = o.x
-							o.x = cx + speed
-						self.rect.x = 300
-						self.level_pos -= speed
-			else:
-				self.rect.x += speed
-				self.level_pos += speed
-				for name in obstacles:
-					obstacle = obstacles[name]
-					if self.rect.colliderect(obstacle):
-						self.rect.x -= speed
-						self.level_pos -= speed
-		elif direction == "up":
-			self.rect.y -= speed
-			for name in obstacles:
-				obstacle = obstacles[name]
-				if self.rect.colliderect(obstacle):
-					self.rect.y += speed
-		elif direction == "down":
-			self.rect.y += speed
-			for name in obstacles:
-				obstacle = obstacles[name]
-				if self.rect.colliderect(obstacle):
-					self.rect.y -= speed
-		if self.last_floor:
-			if not self.rect.colliderect(self.last_floor):
-				self.falling = True
-		if self.rect.colliderect(exit):
-			self.exit_reached = True
-		""" 
 
 class sprite_object(pygame.sprite.Sprite):
 	def __init__(self, x, y, width, height, color, invisible = False):
@@ -357,7 +235,6 @@ def load_level(name):
 	s = j["spawn"]
 	spawn = [int(s[0]), int(s[1])]
 	e = j["exit"]
-	#exit = pygame.Rect(int(e[0]), int(e[1]), int(e[2]), int(e[3]))
 	exit = sprite_object(int(e[0]), int(e[1]), int(e[2]), int(e[3]), (138, 206, 255))
 	obstacles = {}
 	objects = {"exit": exit}
@@ -467,7 +344,6 @@ while not done:
 	
 	for name in floaters:
 		f = floaters[name]
-		#f = obstacles[o["name"]].rect
 		obj = obstacles[name]
 		rect = obj.rect
 		y = rect.y;
@@ -524,9 +400,6 @@ while not done:
 		p.jump_block = False
 	if p.jump_block:
 		p.block_cycle += 1
-	
-	#pygame.draw.rect(screen, (255, 7, 0), p.p_rect)
-	#pygame.draw.rect(screen, (138, 206, 255), exit)
 	
 	show_live_count()
 	pygame.display.flip()
