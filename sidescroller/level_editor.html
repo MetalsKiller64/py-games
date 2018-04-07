@@ -20,8 +20,8 @@
 	</head>
 	<body>
 		<div id="sizer">
-			<input id="width" type="number"></input> X 
-			<input id="height" type="number" disabled="true" value="300"></input>
+			<input id="width" type="number" value=400></input> X 
+			<input id="height" type="number" value="300"></input>
 			<button style="margin-top: 10px;" onclick="create_stage()">Anlegen</button>
 			<a id="download_json">Download JSON</a>
 		</div>
@@ -36,8 +36,10 @@
 				<input id="custom_width" type="number" value="10"/>X
 				<input id="custom_height" type="number" value="10"/>
 				<button id="custom_box" onclick="add_custom_box()">eigene</button>
-				<button id="float" onclick="add_float(60, 10, '+')">schwebe (r)</button>
-				<button id="float" onclick="add_float(60, 10, '-')">schwebe (l)</button>
+				<button id="float" onclick="add_float(60, 10, '+')">schwebe (rechts)</button>
+				<button id="float" onclick="add_float(60, 10, '-')">schwebe (links)</button>
+				<button id="float" onclick="add_float(60, 10, 'u')">schwebe (hoch)</button>
+				<button id="float" onclick="add_float(60, 10, 'd')">schwebe (runter)</button>
 			</div>
 			<button id="delete" onclick="delete_object()">entfernen</button>
 		</div>
@@ -69,23 +71,35 @@
 					var width = attrs.width;
 					var height = attrs.height;
 					var object_name = index.toString() + Math.random().toString(36).substring(2);
-					level_json["obstacles"][object_name] = [x, y ,width, height, 0, 0, 0, ""];
+					level_json["obstacles"][object_name] = [x, y ,width, height, 0, 0, 0, "", 0, 0];
 				}
 				
 				for (index in floats)
 				{
 					var obj = floats[index];
 					var float = obj[0];
-					var parent_attrs = float.parent.attrs
-					var max_x = parent_attrs.x + 100;
 					var direction = obj[1];
-					var attrs = float.attrs;
+					var parent_attrs = float.parent.attrs
 					var x = parent_attrs.x;
 					var y = parent_attrs.y;
+					var max_x = parent_attrs.x + 100;
+					var max_y = y;
+					var min_y = y;
+					if (direction == "u")
+					{
+						y += 50;
+						min_y = y - 100;
+						max_y = y;
+					}
+					if (direction == "d")
+					{
+						max_y += 50;
+					}
+					var attrs = float.attrs;
 					var width = attrs.width;
 					var height = attrs.height;
 					var object_name = index.toString() + Math.random().toString(36).substring(2);
-					level_json["obstacles"][object_name] = [x, y ,width, height, 1, x, max_x, direction];
+					level_json["obstacles"][object_name] = [x, y ,width, height, 1, x, max_x, direction, min_y, max_y];
 				}
 				
 				var spawn_x = spawn.attrs.x;
@@ -131,6 +145,7 @@
 					$("#width").removeClass("error");
 				}
 				level_json["level_width"] = width;
+				level_json["level_height"] = height;
 				
 				stage = new Konva.Stage({
 					container: 'container',
@@ -300,12 +315,18 @@
 			}
 			
 			function add_float(fwidth, fheight, direction, color = "#00D2FF", group_x = undefined, group_y = undefined)
-			{	
+			{
 				var group = new Konva.Group();
 				group.setAttr("draggable", true);
+				var fx = 0;
+				var fy = 0;
+				if (direction == "u")
+				{
+					fy = 50;
+				}
 				var float = new Konva.Rect({
-					x: 0,
-					y: 0,
+					x: fx,
+					y: fy,
 					width: fwidth,
 					height: fheight,
 					fill: color,
@@ -331,21 +352,34 @@
 					console.log(event.target.attrs);
 				});
 				
-				var rwidth = fwidth +100;
-				var rx = 0
+				var rwidth = fwidth;
+				var rheight = fheight;
+				var rx = 0;
+				var ry = 0;
+				if (direction == "+" || direction == "-")
+				{
+					rwidth += 100;
+				}
+				else if (direction == "u" || direction == "d")
+				{
+					rheight = rheight + 50;
+				}
 				if (direction == "-")
 				{
 					rx = -100;
 				}
+				
 				var range = new Konva.Rect({
 					x: rx,
-					y: 0,
+					y: ry,
 					width: rwidth,
-					height: fheight,
-					fill: '#F3C2FF',
+					height: rheight,
+					fill: '#CCF6FF',
+					stroke: 'grey',
+					strokeWidth: 1,
 					draggable: false
 				});
-				
+				//#F3C2FF
 				group.add(range);
 				group.add(float);
 				
