@@ -23,6 +23,7 @@
 			<input id="width" type="number" value=400></input> X 
 			<input id="height" type="number" value="300"></input>
 			<button style="margin-top: 10px;" onclick="create_stage()">Anlegen</button>
+			<input type="file" id="upload_json" accept=".json"></input>
 			<a id="download_json">Download JSON</a>
 		</div>
 		<div class="buttons">
@@ -30,7 +31,7 @@
 			<button id="box1" onclick="add_box(30, 30, '#00D2FF')">30x30</button>
 			<button id="box2" onclick="add_box(60, 60, '#00D2FF')">60x60</button>
 			<button id="box3" onclick="add_box(100, 10, '#00D2FF')">100x10</button>
-			<button id="spawn" onclick="add_box(7, 20, '#8EFF8A', 'exit')">Ausgang</button>
+			<button id="exit" onclick="add_box(7, 20, '#8EFF8A', 'exit')">Ausgang</button>
 			<button id="save" onclick="save()">Speichern</button>
 			<div style="margin-top: 15px">
 				<input id="custom_width" type="number" value="10"/>X
@@ -124,6 +125,25 @@
 			
 			function create_stage(width = undefined, height = undefined)
 			{
+				var uploaded_json = document.getElementById("upload_json").files;
+				console.log(uploaded_json.length);
+				if (uploaded_json.length > 0)
+				{
+					for (i=0; i<uploaded_json.length; i++)
+					{
+						var reader = new FileReader();
+						reader.readAsText(uploaded_json[i], "UTF-8");
+						reader.onload = function(event) {
+							create_stage_from_json(JSON.parse(event.target.result));
+						}
+						reader.onerror = function (event) {
+							console.log(event.target.result);
+						}
+						//var j = JSON.parse(content);
+					}
+					return;
+				}
+				
 				if (width == undefined)
 				{
 					var width = $("#width").val();
@@ -140,9 +160,21 @@
 					}
 					return
 				}
+				if (height == "")
+				{
+					if ($("#height").hasClass("error") == false)
+					{
+						$("#height").addClass("error");
+					}
+					return
+				}
 				if ($("#width").hasClass("error") == true)
 				{
 					$("#width").removeClass("error");
+				}
+				if ($("#height").hasClass("error") == true)
+				{
+					$("#height").removeClass("error");
 				}
 				level_json["level_width"] = width;
 				level_json["level_height"] = height;
@@ -156,6 +188,55 @@
 				$(".konvajs-content").attr("style", ($(".konvajs-content").attr("style") + " border: solid;" ));
 			}
 			
+			function create_stage_from_json(json_object)
+			{
+				var obstacles = json_object["obstacles"];
+				var spawn = json_object["spawn"];
+				var exit = json_object["exit"];
+				var width = json_object["level_width"];
+				var height = json_object["level_height"];
+				
+				level_json["level_width"] = width;
+				level_json["level_height"] = height;
+				
+				stage = new Konva.Stage({
+					container: 'container',
+					width: width,
+					height: height
+				});
+				
+				$(".konvajs-content").attr("style", ($(".konvajs-content").attr("style") + " border: solid;" ));
+				for (key in obstacles)
+				{
+					var obj = obstacles[key];
+					var x = obj[0];
+					var y = obj[1];
+					var w = obj[2];
+					var h = obj[3];
+					var float = obj[4];
+					var min_x = obj[5];
+					var max_x = obj[6];
+					var direction = obj[7];
+					var min_y = obj[8];
+					var max_y = obj[9];
+					if (parseInt(float) == 1)
+					{
+						add_float(w, h, direction, undefined, x, y);
+					}
+					else
+					{
+						add_box(w, h, undefined, "box", x, y);
+					}
+				}
+				
+				var spawn_x = spawn[0];
+				var spawn_y = spawn[1];
+				add_box(7, 20, "#FFFFFF", "spawn", spawn_x, spawn_y);
+				var exit_x = exit[0];
+				var exit_y = exit[1];
+				add_box(7, 20, "#8EFF8A", "exit", exit_x, exit_y);
+			}
+			
 			function recreate_stage(new_objects, new_floats)
 			{
 				var w = stage.attrs.width;
@@ -163,9 +244,9 @@
 				create_stage(w, h);
 				objects = [];
 				floats = [];
-				for (index in new_objects)
+				for (key in new_objects)
 				{
-					var obj = new_objects[index];
+					var obj = new_objects[key];
 					var x = obj.attrs.x;
 					var y = obj.attrs.y;
 					var w = obj.attrs.width;
@@ -173,9 +254,9 @@
 					var c = obj.attrs.fill;
 					add_box(w, h, c, "box", x, y);
 				}
-				for (index in new_floats)
+				for (key in new_floats)
 				{
-					var float = new_floats[index];
+					var float = new_floats[key];
 					var obj = float[0];
 					var direction = float[1];
 					var parent = float[2];
@@ -218,7 +299,7 @@
 				add_box(width, height, "#FB8AFF");
 			}
 			
-			function add_box(box_width, box_height, color, type = "box", box_x = undefined, box_y = undefined)
+			function add_box(box_width, box_height, color = "#00D2FF", type = "box", box_x = undefined, box_y = undefined)
 			{
 				
 				rectX = box_x;
@@ -278,7 +359,7 @@
 					exit = box;
 				}
 			}
-		
+			
 			function delete_object()
 			{
 				var new_objects = [];
