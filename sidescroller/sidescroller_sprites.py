@@ -1,4 +1,8 @@
-import pygame, random, time, json
+import pygame, random, time, json, sys
+
+level_name = "level"
+if len(sys.argv) > 1:
+	level_name = sys.argv[1]
 
 pygame.init()
 screen = pygame.display.set_mode((400, 300))
@@ -62,9 +66,9 @@ class Player(pygame.sprite.Sprite):
 			## TODO: ducken?
 			pass
 		if pressed[pygame.K_LEFT]:
-			self.move("left")
+			self.move("left", 2)
 		if pressed[pygame.K_RIGHT]:
-			self.move("right")
+			self.move("right", 2)
 	
 	def jump(self):
 		self.floating = False
@@ -240,7 +244,7 @@ def respawn():
 	hitbox.rect.x = spawn_x
 	hitbox.rect.y = spawn_y
 	sprites.empty()
-	exit, obstacles, objects, spawn, level_width, level_height, floaters = load_level("level")
+	exit, obstacles, objects, spawn, level_width, level_height, floaters = load_level(level_name)
 	return exit, obstacles, objects, spawn, level_width, level_height, floaters
 
 def load_level(name):
@@ -296,7 +300,7 @@ def load_level(name):
 ending = False
 font = pygame.font.SysFont("comicsansms", 30)
 sprites = pygame.sprite.Group()
-exit, obstacles, objects, spawn, level_width, level_height, floaters = load_level("level")
+exit, obstacles, objects, spawn, level_width, level_height, floaters = load_level(level_name)
 spawn_x = spawn[0]
 spawn_y = spawn[1]
 p = Player(spawn_x, spawn_y)
@@ -321,6 +325,8 @@ while not done:
 	if l:
 		collision = pygame.sprite.spritecollideany(p, l, pygame.sprite.collide_mask)
 		while collision:
+			## FIXME: wenn der spieler eine wand eines objektes berührt und versucht auf das objekt zu springen
+			## wird durch die kollision mit der wand die horizontale bewegung abgebrochen (so kommt man nicht seitlich auf hindernisse)
 			collided_part = check_collision(p, collision)
 			print (collided_part)
 			if collided_part == "top":
