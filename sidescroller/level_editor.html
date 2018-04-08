@@ -28,21 +28,34 @@
 		</div>
 		<div class="buttons">
 			<button id="spawn" onclick="add_box(7, 20, '#FFFFFF', 'spawn')">Start-Punkt</button>
-			<button id="box1" onclick="add_box(30, 30, '#00D2FF')">30x30</button>
-			<button id="box2" onclick="add_box(60, 60, '#00D2FF')">60x60</button>
-			<button id="box3" onclick="add_box(100, 10, '#00D2FF')">100x10</button>
+			<button id="box1" onclick="add_box(30, 30)">30x30</button>
+			<button id="box2" onclick="add_box(60, 60)">60x60</button>
+			<button id="box3" onclick="add_box(100, 10)">100x10</button>
 			<button id="exit" onclick="add_box(7, 20, '#8EFF8A', 'exit')">Ausgang</button>
 			<button id="save" onclick="save()">Speichern</button>
-			<div style="margin-top: 15px">
+			<div style="margin-top: 15px;">
 				<input id="custom_width" type="number" value="10"/>X
 				<input id="custom_height" type="number" value="10"/>
 				<button id="custom_box" onclick="add_custom_box()">eigene</button>
+				schwebe:<input id="custom_floating" type="checkbox" onclick="toggle_direction_select()">
+				<select id="float_direction" disabled="true">
+					<option value="u">hoch</option>
+					<option value="d">runter</option>
+					<option value="-">links</option>
+					<option value="+">rechts</option>
+				</select>
+				<input id="float_distance" type="number" value="100" disabled="true">
+			</div>
+			<div style="margin-top: 15px;">
+				<button id="delete" onclick="delete_object()">entfernen</button>
+				<input id="color" type="color" value="#00D2FF" onchange="update_color()"/>
+				<input id="color_object" type="color" value="#00D2FF" onchange="update_object_color()"/>
+				
 				<button id="float" onclick="add_float(60, 10, '+')">schwebe (rechts)</button>
 				<button id="float" onclick="add_float(60, 10, '-')">schwebe (links)</button>
 				<button id="float" onclick="add_float(60, 10, 'u')">schwebe (hoch)</button>
 				<button id="float" onclick="add_float(60, 10, 'd')">schwebe (runter)</button>
 			</div>
-			<button id="delete" onclick="delete_object()">entfernen</button>
 		</div>
 		<div id="container" class="container"></div>
 		
@@ -60,6 +73,75 @@
 			var spawn = undefined;
 			var exit = undefined;
 			var last_selected = undefined;
+			var last_selected_floating = false;
+			var selected_color = $("#color").val();
+			
+			function parse_rgb_from_hex(color)
+			{
+				return [parseInt(color.substr(1,2),16),
+					parseInt(color.substr(3,2),16),
+					parseInt(color.substr(5,2),16)]
+			}
+			
+			function parse_hex_from_rgb(color_rgb)
+			{
+				var hex_string = "#";
+				for (i in color_rgb)
+				{
+					var part = color_rgb[i];
+					console.log(part);
+					var hex_part = part.toString(16);
+					var hex_value = hex_part.length == 1 ? "0" + hex_part : hex_part;
+					hex_string += hex_value;
+				}
+				return hex_string;
+			}
+			
+			function update_color()
+			{
+				selected_color = $("#color").val();
+			}
+			
+			function update_object_color()
+			{
+				var selected_color = $("#color_object").val();
+				var color_rgb = parse_rgb_from_hex(selected_color);
+				if (last_selected != undefined)
+				{
+					last_selected.attrs.fill = selected_color;
+					if (last_selected_floating)
+					{
+						var range = last_selected.parent.children[0]
+						var color_lightened = "#";
+						for (i in color_rgb)
+						{
+							var part = color_rgb[i];
+							var part_ = part += 50;
+							var part_ = part_ > 255 ? 255 : part_;
+							var hex_value = part_.toString(16);
+							color_lightened += hex_value;
+						}
+						range.attrs.fill = color_lightened;
+						range.draw();
+					}
+					last_selected.draw();
+				}
+			}
+			
+			function toggle_direction_select()
+			{
+				var checked = $("#custom_floating").is(":checked");
+				if (checked)
+				{
+					$("#float_direction").prop("disabled", false);
+					$("#float_distance").prop("disabled", false);
+				}
+				else
+				{
+					$("#float_direction").prop("disabled", true);
+					$("#float_distance").prop("disabled", true);
+				}
+			}
 			
 			function save()
 			{
@@ -71,8 +153,10 @@
 					var y = attrs.y;
 					var width = attrs.width;
 					var height = attrs.height;
+					var color = parse_rgb_from_hex(attrs.fill);
+					console.log(color);
 					var object_name = index.toString() + Math.random().toString(36).substring(2);
-					level_json["obstacles"][object_name] = [x, y ,width, height, 0, 0, 0, "", 0, 0];
+					level_json["obstacles"][object_name] = [x, y ,width, height, 0, 0, 0, "", 0, 0, color];
 				}
 				
 				for (index in floats)
@@ -80,27 +164,34 @@
 					var obj = floats[index];
 					var float = obj[0];
 					var direction = obj[1];
+					var min_max_diff = obj[2];
 					var parent_attrs = float.parent.attrs
 					var x = parent_attrs.x;
 					var y = parent_attrs.y;
-					var max_x = parent_attrs.x + 100;
-					var max_y = y;
+					//var max_x = parent_attrs.x + 100;
+					var max_x = x + min_max_diff;
+					var max_y = y + min_max_diff;
+					var min_x = x;
 					var min_y = y;
 					if (direction == "u")
 					{
-						y += 50;
-						min_y = y - 100;
-						max_y = y;
+						y += float.attrs.y;
+						/*y += min_max_diff;
+						min_y = y;
+						max_y = y;*/
 					}
+					/*
 					if (direction == "d")
 					{
-						max_y += 50;
-					}
+						max_y += min_max_diff;
+					}*/
 					var attrs = float.attrs;
 					var width = attrs.width;
 					var height = attrs.height;
+					var color = parse_rgb_from_hex(attrs.fill);
+					console.log(color);
 					var object_name = index.toString() + Math.random().toString(36).substring(2);
-					level_json["obstacles"][object_name] = [x, y ,width, height, 1, x, max_x, direction, min_y, max_y];
+					level_json["obstacles"][object_name] = [x, y ,width, height, 1, x, max_x, direction, min_y, max_y, color];
 				}
 				
 				var spawn_x = spawn.attrs.x;
@@ -191,6 +282,7 @@
 			function create_stage_from_json(json_object)
 			{
 				var obstacles = json_object["obstacles"];
+				console.log(obstacles);
 				var spawn = json_object["spawn"];
 				var exit = json_object["exit"];
 				var width = json_object["level_width"];
@@ -219,13 +311,32 @@
 					var direction = obj[7];
 					var min_y = obj[8];
 					var max_y = obj[9];
+					var min_max_diff_x = max_x - min_x;
+					var min_max_diff_y = max_y - min_y;
+					var color_rgb = obj[10];
+					console.log(color_rgb);
+					var obj_color = parse_hex_from_rgb(color_rgb);
+					console.log(obj_color);
 					if (parseInt(float) == 1)
 					{
-						add_float(w, h, direction, undefined, x, y);
+						var minimum_values = [];
+						if (direction == "+" || direction == "-")
+						{
+							minimum_values = [min_x, max_x];
+						}
+						else if (direction == "u" || direction == "d")
+						{
+							minimum_values = [min_y, max_y]
+							if (direction == "u")
+							{
+								y -= min_max_diff_y;
+							}
+						}
+						add_float(w, h, direction, obj_color, x, y, minimum_values);
 					}
 					else
 					{
-						add_box(w, h, undefined, "box", x, y);
+						add_box(w, h, obj_color, "box", x, y);
 					}
 				}
 				
@@ -292,14 +403,22 @@
 			function add_custom_box()
 			{
 				console.log("add custom");
-				var width = $("#custom_width").val();
-				var height = $("#custom_height").val();
-				console.log(width);
-				console.log(height);
-				add_box(width, height, "#FB8AFF");
+				var width = parseInt($("#custom_width").val());
+				var height = parseInt($("#custom_height").val());
+				var floating = $("#custom_floating").is(":checked");
+				if (floating)
+				{
+					var direction = $("#float_direction").val();
+					var distance = parseInt($("#float_distance").val());
+					add_float(width, height, direction, undefined, undefined, undefined, undefined, distance);
+				}
+				else
+				{
+					add_box(width, height);
+				}
 			}
 			
-			function add_box(box_width, box_height, color = "#00D2FF", type = "box", box_x = undefined, box_y = undefined)
+			function add_box(box_width, box_height, color, type = "box", box_x = undefined, box_y = undefined)
 			{
 				
 				rectX = box_x;
@@ -311,6 +430,11 @@
 				if (box_y == undefined)
 				{
 					var rectY = stage.getHeight() / 2 - 25;
+				}
+				
+				if (color == undefined)
+				{
+					color = selected_color;
 				}
 				
 				var box = new Konva.Rect({
@@ -337,6 +461,8 @@
 						last_selected.draw();
 					}
 					last_selected = event.target;
+					last_selected_floating = false;
+					$("#color_object").val(event.target.attrs.fill);
 					event.target.attrs.stroke = "green";
 					event.target.draw();
 					console.log(event.target.attrs);
@@ -395,15 +521,50 @@
 				}
 			}
 			
-			function add_float(fwidth, fheight, direction, color = "#00D2FF", group_x = undefined, group_y = undefined)
+			function add_float(fwidth, fheight, direction, color, group_x = undefined, group_y = undefined, minimum_values = undefined, distance = undefined)
 			{
+				if (color == undefined)
+				{
+					color = selected_color;
+				}
+				
+				if (direction == "+" || direction == "-")
+				{
+					var min_max_diff = 50
+				}
+				else if (direction == "u" || direction == "d")
+				{
+					var min_max_diff = 50
+				}
+				
+				if (minimum_values != undefined)
+				{
+					min_max_diff = minimum_values[1] - minimum_values[0];
+				}
+				
+				if (distance != undefined)
+				{
+					min_max_diff = distance;
+				}
+				
+				var color_rgb = parse_rgb_from_hex(color);
+				var color_lightened = "#";
+				for (i in color_rgb)
+				{
+					var part = color_rgb[i];
+					var part_ = part += 50;
+					var part_ = part_ > 255 ? 255 : part_;
+					var hex_value = part_.toString(16);
+					color_lightened += hex_value;
+				}
+				
 				var group = new Konva.Group();
 				group.setAttr("draggable", true);
 				var fx = 0;
 				var fy = 0;
 				if (direction == "u")
 				{
-					fy = 50;
+					fy = min_max_diff;
 				}
 				var float = new Konva.Rect({
 					x: fx,
@@ -428,6 +589,7 @@
 						last_selected.draw();
 					}
 					last_selected = event.target;
+					last_selected_floating = true;
 					event.target.attrs.stroke = "green";
 					event.target.draw();
 					console.log(event.target.attrs);
@@ -439,28 +601,26 @@
 				var ry = 0;
 				if (direction == "+" || direction == "-")
 				{
-					rwidth += 100;
+					rwidth += min_max_diff;
 				}
 				else if (direction == "u" || direction == "d")
 				{
-					rheight = rheight + 50;
+					rheight += min_max_diff;
 				}
 				if (direction == "-")
 				{
-					rx = -100;
+					rx = -min_max_diff;
 				}
-				
 				var range = new Konva.Rect({
 					x: rx,
 					y: ry,
 					width: rwidth,
 					height: rheight,
-					fill: '#CCF6FF',
-					stroke: 'grey',
+					fill: color_lightened,
+					stroke: 'black',
 					strokeWidth: 1,
 					draggable: false
 				});
-				//#F3C2FF
 				group.add(range);
 				group.add(float);
 				
@@ -480,7 +640,8 @@
 				var layer = new Konva.Layer();
 				layer.add(group);
 				stage.add(layer);
-				floats.push([float, direction, float.parent]);
+				//, float.parent
+				floats.push([float, direction, min_max_diff]);
 			}
 		</script>
 	</body>
