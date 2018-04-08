@@ -340,12 +340,14 @@ while not done:
 				p.falling = True
 				p.move("down", 1)
 			elif collided_part == "left":
-				p.stop_x_movement = True
+				#if not p.jumping and not p.falling:
+				#	p.stop_x_movement = True
 				p.move("left", 1, force = True)
 				if p.last_floor == None and not p.jumping:
 					p.falling = True
 			elif collided_part == "right":
-				p.stop_x_movement = True
+				#if not p.jumping and not p.falling:
+				#	p.stop_x_movement = True
 				p.move("right", 1, force = True)
 				if p.last_floor == None and not p.jumping:
 					p.falling = True
