@@ -291,6 +291,11 @@ def load_level(name):
 		direction = ob[k][7]
 		float_y_min = int(ob[k][8])
 		float_y_max = int(ob[k][9])
+		try:
+			color_rgb = ob[k][10]
+			color = (color_rgb[0], color_rgb[1], color_rgb[2])
+		except IndexError:
+			color = (255, 107, 0)
 		if direction == "+":
 			level_pos_x = float_x_min
 			level_pos_y = y
@@ -303,7 +308,7 @@ def load_level(name):
 		elif direction == "d":
 			level_pos_x = x
 			level_pos_y = float_y_min
-		sprite = sprite_object(x, y, w, h, (255, 107, 0))
+		sprite = sprite_object(x, y, w, h, color)
 		obstacles[k] = sprite
 		objects[k] = sprite
 		if floating:
