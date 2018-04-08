@@ -44,8 +44,7 @@ class Player(pygame.sprite.Sprite):
 		self.exit_reached = False
 	
 	def draw(self, surface):
-		self.rect = self.rect.clamp(surface.get_rect())
-		surface.blit(self.image, self.rect)
+		pygame.draw.rect(surface, (255, 7, 0), self.rect)
 	
 	def handle_phys(self):
 		if self.jumping:
@@ -106,11 +105,12 @@ class Player(pygame.sprite.Sprite):
 	
 	def move(self, direction, speed = 1, force = False):
 		#print ("move "+direction)
-		print ("x: "+str(self.rect.x))
-		print ("level_pos_x: "+str(self.level_pos_x))
-		print ("y: "+str(self.rect.y))
-		print ("level_pos_y: "+str(self.level_pos_y))
-		print ("lh: "+str(level_height -100))
+		#print ("x: "+str(self.rect.x))
+		#print ("level_pos_x: "+str(self.level_pos_x))
+		#print ("y: "+str(self.rect.y))
+		#print ("hy: "+str(hitbox.rect.y))
+		#print ("level_pos_y: "+str(self.level_pos_y))
+		#print ("lh: "+str(level_height -100))
 		if direction == "left":
 			if self.stop_x_movement and not force:
 				return
@@ -151,6 +151,25 @@ class Player(pygame.sprite.Sprite):
 				#self.level_pos_y -= speed
 				hitbox.rect.y -= speed
 				sprites.update("move", ["up", speed])
+
+class hitbox_object(pygame.sprite.Sprite):
+	def __init__(self, x, y, width, height, color):
+		pygame.sprite.Sprite.__init__(self)
+		self.image = pygame.Surface([width, height])
+		self.image.fill(color)
+		self.color = color
+
+		self.rect = self.image.get_rect()
+		self.rect.x = x
+		self.rect.y = y
+		self.rect.width = width
+		self.rect.height = height
+		self.mask = pygame.mask.from_surface(self.image)
+		self.mask.fill()
+	
+	def draw(self, surface):
+		pygame.draw.rect(surface, self.color, self.rect)
+
 
 class sprite_object(pygame.sprite.Sprite):
 	def __init__(self, x, y, width, height, color, invisible = False):
@@ -307,7 +326,8 @@ p = Player(spawn_x, spawn_y)
 #print (p.rect.x)
 print (p.level_pos_x)
 print (p.level_pos_y)
-hitbox = sprite_object(spawn_x-1, spawn_y-1, 10,24, (0, 0, 0), True)
+#hitbox = sprite_object(spawn_x-1, spawn_y-1, 10,24, (0, 0, 0), True)
+hitbox = hitbox_object(spawn_x-1, spawn_y-1, 9,22, (255, 255, 255))
 
 while not done:
 	for event in pygame.event.get():
