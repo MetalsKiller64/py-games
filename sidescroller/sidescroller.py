@@ -35,6 +35,11 @@ class Player(pygame.sprite.Sprite):
 		self.p_height = 20
 		self.falling = True
 		self.jumping = False
+		self.speed = {"left": 0, "right": 0}
+		self.speed_max = 3
+		self.colliding = {"left": False, "right": False, "top": False, "bottom": False}
+		self.frame = 0
+		self.speed_rate = 10
 		self.jump_cycle = 0
 		self.last_floor = None
 		self.lives = 2
@@ -42,6 +47,7 @@ class Player(pygame.sprite.Sprite):
 		self.level_pos_y = spawn_y
 		self.floating = False
 		self.float_direction = ""
+		self.floating_speed = 0
 		self.jump_block = False
 		self.block_cycle = 0
 		self.stop_x_movement = False
@@ -59,6 +65,11 @@ class Player(pygame.sprite.Sprite):
 			self.float()
 		else:
 			self.check_ground()
+		pressed = pygame.key.get_pressed()
+		if not pressed[pygame.K_LEFT] and not pressed[pygame.K_RIGHT] and self.frame < self.speed_rate:
+			for direction in self.speed:
+				if self.speed[direction] > 0:
+					self.speed[direction] -= 1
 	
 	def handle_key_event(self):
 		pressed = pygame.key.get_pressed()
@@ -69,9 +80,32 @@ class Player(pygame.sprite.Sprite):
 			## TODO: ducken?
 			pass
 		if pressed[pygame.K_LEFT]:
-			self.move("left", 2)
-		if pressed[pygame.K_RIGHT]:
-			self.move("right", 2)
+			if self.colliding["left"]:
+				self.speed["left"] = 0
+				return
+			if self.frame >= self.speed_rate:
+				if self.speed["left"] < self.speed_max:
+					self.speed["left"] += 1
+					if self.speed["right"] > 0:
+						self.speed["right"] -= 1
+				self.frame = 0
+			self.move("left")
+		elif pressed[pygame.K_RIGHT]:
+			if self.colliding["right"]:
+				self.speed["right"] = 0
+				return
+			if self.frame >= self.speed_rate:
+				if self.speed["right"] < self.speed_max:
+					self.speed["right"] += 1
+					if self.speed["left"] > 0:
+						self.speed["left"] -= 1
+				self.frame = 0
+			self.move("right")
+		else:
+			if self.speed["left"] > 0:
+				self.speed["left"] -= 1
+			if self.speed["right"] > 0:
+				self.speed["right"] -= 1
 	
 	def jump(self):
 		self.floating = False
@@ -93,21 +127,22 @@ class Player(pygame.sprite.Sprite):
 	
 	def float(self):
 		direction = self.float_direction
+		speed = self.floating_speed
 		if direction == "+":
-			self.move("right", 1)
+			self.move("right", speed)
 		elif direction == "-":
-			self.move("left", 1)
+			self.move("left", speed)
 		elif direction == "u":
-			self.move("up", 1)
+			self.move("up", speed)
 		elif direction == "d":
-			self.move("down", 1)
+			self.move("down", speed)
 
 	def check_ground(self):
 		if self.last_floor == None:
 			self.falling = True
 			self.floating = False
 	
-	def move(self, direction, speed = 1, force = False):
+	def move(self, direction, speed = None, force = False):
 		#print ("move "+direction)
 		#print ("x: "+str(self.rect.x))
 		#print ("level_pos_x: "+str(self.level_pos_x))
@@ -118,6 +153,8 @@ class Player(pygame.sprite.Sprite):
 		if direction == "left":
 			if self.stop_x_movement and not force:
 				return
+			if speed == None:
+				speed = self.speed["left"]
 			self.rect.x -= speed
 			self.level_pos_x -= speed
 			hitbox.rect.x -= speed
@@ -129,6 +166,8 @@ class Player(pygame.sprite.Sprite):
 		elif direction == "right":
 			if self.stop_x_movement and not force:
 				return
+			if speed == None:
+				speed = self.speed["right"]
 			self.rect.x += speed
 			self.level_pos_x += speed
 			hitbox.rect.x += speed
@@ -259,13 +298,19 @@ def show_live_count():
 	screen.blit(text, (50 - text.get_width() // 2, 10 - text.get_height() // 2))
 
 def respawn():
+	gameover = False
+	p.lives -= 1
+	if p.lives < 0:
+		gameover = True
 	p.rect.x = spawn_x
 	p.rect.y = spawn_y
 	p.level_pos_x = spawn_x
 	p.level_pos_y = spawn_y
 	p.falling = True
-	hitbox.rect.x = spawn_x
-	hitbox.rect.y = spawn_y
+	p.floating = False
+	p.jumping = False
+	hitbox.rect.x = spawn_x -1 
+	hitbox.rect.y = spawn_y -1
 	sprites.empty()
 	exit, obstacles, objects, spawn, level_width, level_height, floaters = load_level(level_name)
 	return exit, obstacles, objects, spawn, level_width, level_height, floaters
@@ -289,21 +334,26 @@ def load_level(level_file):
 	floaters = {}
 	ob = j["obstacles"]
 	for k in ob:
-		x = int(ob[k][0])
-		y = int(ob[k][1])
-		w = int(ob[k][2])
-		h = int(ob[k][3])
-		floating = bool(int(ob[k][4]))
-		float_x_min = int(ob[k][5])
-		float_x_max = int(ob[k][6])
-		direction = ob[k][7]
-		float_y_min = int(ob[k][8])
-		float_y_max = int(ob[k][9])
+		obj = ob[k]
+		x = int(obj[0])
+		y = int(obj[1])
+		w = int(obj[2])
+		h = int(obj[3])
+		floating = bool(int(obj[4]))
+		float_x_min = int(obj[5])
+		float_x_max = int(obj[6])
+		direction = obj[7]
+		float_y_min = int(obj[8])
+		float_y_max = int(obj[9])
 		try:
-			color_rgb = ob[k][10]
+			color_rgb = obj[10]
 			color = (color_rgb[0], color_rgb[1], color_rgb[2])
 		except IndexError:
 			color = (255, 107, 0)
+		try:
+			float_speed = int(obj[11])
+		except IndexError:
+			float_speed = 1
 		if direction == "+":
 			level_pos_x = float_x_min
 			level_pos_y = y
@@ -325,11 +375,13 @@ def load_level(level_file):
 			 "y_min": float_y_min, "y_max": float_y_max,
 			 "direction": direction, "level_pos_x": level_pos_x, "level_pos_y": level_pos_y,
 			 "level_pos_x_min": float_x_min, "level_pos_x_max": float_x_max,
-			 "level_pos_y_min": float_y_min, "level_pos_y_max": float_y_max}
+			 "level_pos_y_min": float_y_min, "level_pos_y_max": float_y_max,
+			 "speed": float_speed}
 			floaters[k] = f
 	return exit, obstacles, objects, spawn, level_width, level_height, floaters
 
 ending = False
+gameover = False
 font = pygame.font.SysFont("comicsansms", 30)
 sprites = pygame.sprite.Group()
 exit, obstacles, objects, spawn, level_width, level_height, floaters = load_level(level_name)
@@ -348,40 +400,68 @@ while not done:
 			done = True
 	clock.tick(60)
 	if ending:
-		time.sleep(5)
-		break
+		show_end()
+		pygame.display.flip()
+		continue
+	if gameover:
+		show_gameover()
+		pygame.display.flip()
+		continue
 	screen.fill((0, 0, 0))
 	sprites.draw(screen)
+	#hitbox.draw(screen)
 	p.draw(screen)
+	if p.frame >= p.speed_rate:
+		p.frame = 0
+	else:
+		p.frame += 1
+	print (p.speed)
 	
+	p.colliding["right"] = False
+	p.colliding["left"] = False
+	p.colliding["top"] = False
+	p.colliding["bottom"] = False
 	l = pygame.sprite.spritecollide(hitbox, sprites, False)
+	#print (l)
+	recent_collisions = []
 	if l:
 		collision = pygame.sprite.spritecollideany(p, l, pygame.sprite.collide_mask)
 		while collision:
-			## FIXME: wenn der spieler eine wand eines objektes berührt und versucht auf das objekt zu springen
-			## wird durch die kollision mit der wand die horizontale bewegung abgebrochen (so kommt man nicht seitlich auf hindernisse)
 			collided_part = check_collision(p, collision)
-			print (collided_part)
 			if collided_part == "top":
+				if recent_collisions.count("bottom") >= 50:
+					exit, obstacles, objects, spawn, level_width, level_height, floaters, gameover = respawn()
 				p.falling = False
 				p.floating = False
 				p.last_floor = collision
 				p.stop_x_movement = False
 				p.move("up", 1)
 			elif collided_part == "bottom":
+				if recent_collisions.count("top") >= 50:
+					exit, obstacles, objects, spawn, level_width, level_height, floaters, gameover = respawn()
 				p.jumping = False
 				p.falling = True
 				p.move("down", 1)
 			elif collided_part == "left":
 				#if not p.jumping and not p.falling:
 				#	p.stop_x_movement = True
+				if p.floating:
+					p.move("left", p.floating_speed, force = True)
+					continue
 				p.move("left", 1, force = True)
+				p.speed["left"] = 0
+				p.colliding["right"] = True
 				if p.last_floor == None and not p.jumping:
 					p.falling = True
 			elif collided_part == "right":
 				#if not p.jumping and not p.falling:
 				#	p.stop_x_movement = True
+				if p.floating:
+					p.move("right", p.floating_speed, force = True)
+					continue
 				p.move("right", 1, force = True)
+				p.speed["right"] = 0
+				p.colliding["left"] = True
 				if p.last_floor == None and not p.jumping:
 					p.falling = True
 			elif collided_part == "stop":
@@ -391,9 +471,14 @@ while not done:
 				print ("fail")
 			p.handle_phys()
 			collision = pygame.sprite.spritecollideany(p, l, pygame.sprite.collide_mask)
+			recent_collisions.append(collided_part)
 	elif not p.falling and not p.jumping:
 		p.last_floor = None
 		p.floating = False
+		p.colliding["right"] = False
+		p.colliding["left"] = False
+		p.colliding["top"] = False
+		p.colliding["bottom"] = False
 	
 	for name in floaters:
 		f = floaters[name]
@@ -401,7 +486,11 @@ while not done:
 		if p.last_floor == obj:
 			p.floating = True
 			p.float_direction = f["direction"]
+			p.floating_speed = f["speed"]
 	
+	#print (p.falling)
+	#print (p.floating)
+	#print (p.jumping)
 	p.handle_key_event()
 	p.handle_phys()
 	
@@ -421,26 +510,27 @@ while not done:
 		f_level_pos_y_min = f["level_pos_y_min"]
 		f_level_pos_y_max = f["level_pos_y_max"]
 		direction = f["direction"]
+		speed = f["speed"]
 		if direction == "+" and f_level_pos_x < f_level_pos_x_max:
-			obj.move("right")
-			f_level_pos_x += 1
+			obj.move("right", speed)
+			f_level_pos_x += speed
 		elif direction == "+":
 			direction = "-"
 		elif direction == "-" and f_level_pos_x > f_level_pos_x_min:
-			obj.move("left")
-			f_level_pos_x -= 1
+			obj.move("left", speed)
+			f_level_pos_x -= speed
 		elif direction == "-":
 			direction = "+"
 		elif direction == "u" and f_level_pos_y > f_level_pos_y_min:
-			obj.move("up")
-			f_level_pos_y -= 1
+			obj.move("up", speed)
+			f_level_pos_y -= speed
 			#print (direction)
 		elif direction == "u":
 			direction = "d"
 			#print (direction)
 		elif direction == "d" and f_level_pos_y < f_level_pos_y_max:
-			obj.move("down")
-			f_level_pos_y += 1
+			obj.move("down", speed)
+			f_level_pos_y += speed
 			#print (direction)
 		elif direction == "d":
 			direction = "u"
@@ -457,12 +547,9 @@ while not done:
 		show_end()
 		ending = True
 
-	if p.rect.y >= 280:
-		if p.lives <= 0:
-			show_gameover()
-		else:
-			p.lives -= 1
-			exit, obstacles, objects, spawn, level_width, level_height, floaters = respawn()
+	if p.rect.y >= 300:
+		exit, obstacles, objects, spawn, level_width, level_height, floaters, gameover = respawn()
+		#respawn()
 	
 	if p.block_cycle >= 10:
 		p.block_cycle = 0
