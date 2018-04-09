@@ -1,8 +1,12 @@
 import pygame, random, time, json, sys
 
-level_name = "level"
+level_name = "level.json"
 if len(sys.argv) > 1:
-	level_name = sys.argv[1]
+	filename = sys.argv[1]
+	if filename.endswith(".json"):
+		level_name = filename
+	else:
+		level_name = filename+".json"
 
 pygame.init()
 screen = pygame.display.set_mode((400, 300))
@@ -266,10 +270,14 @@ def respawn():
 	exit, obstacles, objects, spawn, level_width, level_height, floaters = load_level(level_name)
 	return exit, obstacles, objects, spawn, level_width, level_height, floaters
 
-def load_level(name):
-	f = open(name+".json")
+def load_json(filename):
+	f = open(filename)
 	j = json.load(f)
 	f.close()
+	return j
+
+def load_level(level_file):
+	j = load_json(level_file)
 	level_width = int(j["level_width"])
 	level_height = int(j["level_height"])
 	s = j["spawn"]
