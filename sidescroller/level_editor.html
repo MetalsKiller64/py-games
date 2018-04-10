@@ -2,7 +2,7 @@
 <html>
 	<head>
 		<meta charset="UTF-8">
-		<script src="js/konva.min.js"></script>
+		<script src="js/konva.js"></script>
 		<script src="js/jquery.min.js"></script>
 		<style>
 			.buttons {
@@ -68,8 +68,8 @@
 			
 			var stage = undefined;
 			var level_json = {"obstacles": {}, "exit": undefined, "spawn": undefined, "level_width": 1000};
-			var objects = [];
-			var floats = [];
+			var objects = {};
+			var floats = {};
 			var spawn = undefined;
 			var exit = undefined;
 			var last_selected = undefined;
@@ -89,7 +89,6 @@
 				for (i in color_rgb)
 				{
 					var part = color_rgb[i];
-					console.log(part);
 					var hex_part = part.toString(16);
 					var hex_value = hex_part.length == 1 ? "0" + hex_part : hex_part;
 					hex_string += hex_value;
@@ -145,23 +144,22 @@
 			
 			function save()
 			{
-				for (index in objects)
+				level_json = {"obstacles": {}, "exit": undefined, "spawn": undefined, "level_width": 1000};
+				for (key in objects)
 				{
-					var obj = objects[index];
+					var obj = objects[key];
 					var attrs = obj.attrs;
 					var x = attrs.x;
 					var y = attrs.y;
 					var width = attrs.width;
 					var height = attrs.height;
 					var color = parse_rgb_from_hex(attrs.fill);
-					console.log(color);
-					var object_name = index.toString() + Math.random().toString(36).substring(2);
-					level_json["obstacles"][object_name] = [x, y ,width, height, 0, 0, 0, "", 0, 0, color];
+					level_json["obstacles"][key] = [x, y ,width, height, 0, 0, 0, "", 0, 0, color];
 				}
 				
-				for (index in floats)
+				for (key in floats)
 				{
-					var obj = floats[index];
+					var obj = floats[key];
 					var float = obj[0];
 					var direction = obj[1];
 					var min_max_diff = obj[2];
@@ -189,9 +187,7 @@
 					var width = attrs.width;
 					var height = attrs.height;
 					var color = parse_rgb_from_hex(attrs.fill);
-					console.log(color);
-					var object_name = index.toString() + Math.random().toString(36).substring(2);
-					level_json["obstacles"][object_name] = [x, y ,width, height, 1, x, max_x, direction, min_y, max_y, color];
+					level_json["obstacles"][key] = [x, y ,width, height, 1, x, max_x, direction, min_y, max_y, color];
 				}
 				
 				var spawn_x = spawn.attrs.x;
@@ -203,6 +199,10 @@
 				var exit_w = exit.attrs.width;
 				var exit_h = exit.attrs.height;
 				level_json["exit"] = [exit_x, exit_y, exit_w, exit_h];
+				var width = $("#width").val();
+				var height = $("#height").val();
+				level_json["level_width"] = width;
+				level_json["level_height"] = height;
 				
 				var json_obj = JSON.stringify(level_json, null, 4);
 				var blob = new Blob([json_obj], {type: "application/json"});
@@ -217,7 +217,6 @@
 			function create_stage(width = undefined, height = undefined)
 			{
 				var uploaded_json = document.getElementById("upload_json").files;
-				console.log(uploaded_json.length);
 				if (uploaded_json.length > 0)
 				{
 					for (i=0; i<uploaded_json.length; i++)
@@ -282,7 +281,6 @@
 			function create_stage_from_json(json_object)
 			{
 				var obstacles = json_object["obstacles"];
-				console.log(obstacles);
 				var spawn = json_object["spawn"];
 				var exit = json_object["exit"];
 				var width = json_object["level_width"];
@@ -314,9 +312,7 @@
 					var min_max_diff_x = max_x - min_x;
 					var min_max_diff_y = max_y - min_y;
 					var color_rgb = obj[10];
-					console.log(color_rgb);
 					var obj_color = parse_hex_from_rgb(color_rgb);
-					console.log(obj_color);
 					if (parseInt(float) == 1)
 					{
 						var minimum_values = [];
@@ -370,7 +366,7 @@
 					var float = new_floats[key];
 					var obj = float[0];
 					var direction = float[1];
-					var parent = float[2];
+					var parent = obj.parent;
 					var parent_attrs = parent.attrs;
 					var w = obj.attrs.width;
 					var h = obj.attrs.height;
@@ -402,7 +398,6 @@
 			
 			function add_custom_box()
 			{
-				console.log("add custom");
 				var width = parseInt($("#custom_width").val());
 				var height = parseInt($("#custom_height").val());
 				var floating = $("#custom_floating").is(":checked");
@@ -467,6 +462,7 @@
 					event.target.draw();
 					console.log(event.target.attrs);
 				});
+				box.floating = false;
 
 				
 				var layer = new Konva.Layer();
@@ -474,7 +470,10 @@
 				stage.add(layer);
 				if (type == "box")
 				{
-					objects.push(box);
+					//objects.push(box);
+					var key = Object.keys(objects).length.toString() + Math.random().toString(36).substring(2);
+					box.object_key = key;
+					objects[key] = box;
 				}
 				else if (type == "spawn")
 				{
@@ -488,37 +487,19 @@
 			
 			function delete_object()
 			{
-				var new_objects = [];
-				var new_floats = [];
-				if (last_selected != undefined)
+				var key = last_selected.object_key;
+				if (last_selected.floating)
 				{
-					for (index in objects)
-					{
-						var obj = objects[index];
-						if (obj == last_selected)
-						{
-							continue
-						}
-						new_objects.push(obj);
-					}
-					
-					for (index in floats)
-					{
-						var float = floats[index];
-						var obj = float[0];
-						var direction = float[1];
-						var parent = float[2];
-						if (obj == last_selected)
-						{
-							continue
-						}
-						new_floats.push([obj, direction, parent]);
-					}
-					last_selected = undefined;
-					console.log(new_objects);
-					console.log(new_floats);
-					recreate_stage(new_objects, new_floats);
+					var layer = last_selected.parent.parent;
+					delete floats[key];
 				}
+				else
+				{
+					var layer = last_selected.parent;
+					delete objects[key];
+				}
+				layer.remove();
+				//layer.destroy();
 			}
 			
 			function add_float(fwidth, fheight, direction, color, group_x = undefined, group_y = undefined, minimum_values = undefined, distance = undefined)
@@ -594,6 +575,7 @@
 					event.target.draw();
 					console.log(event.target.attrs);
 				});
+				float.floating = true;
 				
 				var rwidth = fwidth;
 				var rheight = fheight;
@@ -641,7 +623,10 @@
 				layer.add(group);
 				stage.add(layer);
 				//, float.parent
-				floats.push([float, direction, min_max_diff]);
+				//floats.push([float, direction, min_max_diff]);
+				var key = Object.keys(floats).length.toString() + Math.random().toString(36).substring(2);
+				float.object_key = key;
+				floats[key] = [float, direction, min_max_diff];
 			}
 		</script>
 	</body>
