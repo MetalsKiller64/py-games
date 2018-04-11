@@ -37,9 +37,11 @@ class Player(pygame.sprite.Sprite):
 		self.jumping = False
 		self.speed = {"left": 0, "right": 0}
 		self.speed_max = 3
+		self.sprint_max = 6
+		self.sprinting = False
 		self.colliding = {"left": False, "right": False, "top": False, "bottom": False}
 		self.frame = 0
-		self.speed_rate = 10
+		self.speed_rate = 5
 		self.jump_cycle = 0
 		self.last_floor = None
 		self.lives = 2
@@ -66,6 +68,10 @@ class Player(pygame.sprite.Sprite):
 		else:
 			self.check_ground()
 		pressed = pygame.key.get_pressed()
+		if not self.sprinting:
+			for direction in self.speed:
+				if self.speed[direction] > 3:
+					self.speed[direction] -= 1
 		if not pressed[pygame.K_LEFT] and not pressed[pygame.K_RIGHT] and self.frame < self.speed_rate:
 			for direction in self.speed:
 				if self.speed[direction] > 0:
@@ -73,6 +79,14 @@ class Player(pygame.sprite.Sprite):
 	
 	def handle_key_event(self):
 		pressed = pygame.key.get_pressed()
+		speed_max = self.speed_max
+		self.sprinting = False
+		#if (pressed[pygame.K_LSHIFT] or pressed[pygame.K_RSHIFT]) and (not self.jumping and not self.falling):
+		if pressed[pygame.K_LSHIFT] or pressed[pygame.K_RSHIFT]:
+			print ("shift")
+			self.sprinting = True
+			speed_max = self.sprint_max
+
 		if pressed[pygame.K_SPACE] and not self.jumping and not self.falling:
 			if not self.jump_block:
 				self.jump()
@@ -84,7 +98,7 @@ class Player(pygame.sprite.Sprite):
 				self.speed["left"] = 0
 				return
 			if self.frame >= self.speed_rate:
-				if self.speed["left"] < self.speed_max:
+				if self.speed["left"] < speed_max:
 					self.speed["left"] += 1
 					if self.speed["right"] > 0:
 						self.speed["right"] -= 1
@@ -95,7 +109,7 @@ class Player(pygame.sprite.Sprite):
 				self.speed["right"] = 0
 				return
 			if self.frame >= self.speed_rate:
-				if self.speed["right"] < self.speed_max:
+				if self.speed["right"] < speed_max:
 					self.speed["right"] += 1
 					if self.speed["left"] > 0:
 						self.speed["left"] -= 1
