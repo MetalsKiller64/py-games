@@ -5,6 +5,60 @@
 		<script src="js/konva.js"></script>
 		<script src="js/jquery.min.js"></script>
 		<style>
+			button {
+				background: none;
+				border-style: solid;
+				/*cursor: pointer;*/
+				border-radius: 10px;
+				border-color: black;
+				border-width: 1px;
+			}
+
+			button:hover {
+				background: #EDF6FD;
+			}
+			
+			input[type=color] {
+				background: none;
+				border-style: solid;
+				cursor: pointer;
+				border-color: black;
+				border-width: 1px;
+				width: 3em;
+				padding: 0px;
+			}
+			
+			.input_file{
+				width: 0.1px;
+				height: 0.1px;
+				opacity: 0;
+				overflow: hidden;
+				position: absolute;
+				z-index: -1;
+			}
+			.input_file + label {
+				display: inline-block;
+				padding-top: 2px;
+				padding-bottom: 2px;
+				padding-left: 8px;
+				padding-right: 8px;
+				border: solid;
+				border-width: 1px;
+				border-style: groove;
+				border-radius: 15px;
+			}
+			.input_file:focus + label,
+			.input_file + label:hover {
+				background-color: #EDF6FD;
+			}
+			.input_file + label {
+				cursor: pointer; /* "hand" cursor */
+			}
+			
+			.sizer {
+				display: inline;
+			}
+			
 			.buttons {
 				margin-top: 15px;
 			}
@@ -14,49 +68,92 @@
 			}
 			
 			.container {
-				margin-top: 10px;
+				margin-top: 20%;
+				z-index: 0;
+			}
+			
+			.tools_wrapper {
+				height: 10%;
+			}
+			
+			.tools {
+				/*height: 10%;*/
+				background-color: white;
+				width: 95%;
+				position: fixed;
+				border: solid;
+				border-color: black;
+				border-width: 2px;
+				padding: 10px;
+				border-bottom-right-radius: 20px;
+				border-bottom-left-radius: 20px;
+				border-top: none;
+				z-index: 1;
+			}
+			
+			.toggle_button {
+				position: fixed;
+				left: 90%;
+				z-index: 1;
+				top: 3px;
+			}
+			
+			.hidden {
+				display: none;
 			}
 		</style>
 	</head>
-	<body>
-		<div id="sizer">
-			<input id="width" type="number" value=400></input> X 
-			<input id="height" type="number" value="300"></input>
-			<button style="margin-top: 10px;" onclick="create_stage()">Anlegen</button>
-			<input type="file" id="upload_json" accept=".json"></input>
-			<a id="download_json">Download JSON</a>
-		</div>
-		<div class="buttons">
-			<button id="spawn" onclick="add_box(7, 20, '#FFFFFF', 'spawn')">Start-Punkt</button>
-			<button id="box1" onclick="add_box(30, 30)">30x30</button>
-			<button id="box2" onclick="add_box(60, 60)">60x60</button>
-			<button id="box3" onclick="add_box(100, 10)">100x10</button>
-			<button id="exit" onclick="add_box(7, 20, '#8EFF8A', 'exit')">Ausgang</button>
-			<button id="save" onclick="save()">Speichern</button>
-			<div style="margin-top: 15px;">
-				<input id="custom_width" type="number" value="10"/>X
-				<input id="custom_height" type="number" value="10"/>
-				<button id="custom_box" onclick="add_custom_box()">eigene</button>
-				schwebe:<input id="custom_floating" type="checkbox" onclick="toggle_direction_select()">
-				<select id="float_direction" disabled="true">
-					<option value="u">hoch</option>
-					<option value="d">runter</option>
-					<option value="-">links</option>
-					<option value="+">rechts</option>
-				</select>
-				<input id="float_distance" type="number" value="100" disabled="true">
+	<body onload="set_level_file()">
+		<div class="tools_wrapper">
+			<div id="tools" class="tools">
+				<div id="sizer" class="sizer">
+					<input id="width" type="number" value=400></input> X 
+					<input id="height" type="number" value="300"></input>
+					<button style="margin-top: 10px;" onclick="create_stage()">Anlegen</button>
+					<input type="file" id="upload_json" accept=".json" class="input_file" oninput="set_level_file()"></input>
+					<label for="upload_json">Level-Datei laden</label>
+					<span id="loaded_level"></span>
+				</div>
+				<div class="buttons">
+					<button id="spawn" onclick="add_box(7, 20, '#FFFFFF', 'spawn')">Start-Punkt</button>
+					<button id="box1" onclick="add_box(30, 30)">30x30</button>
+					<button id="box2" onclick="add_box(60, 60)">60x60</button>
+					<button id="box3" onclick="add_box(100, 10)">100x10</button>
+					<button id="exit" onclick="add_box(7, 20, '#8EFF8A', 'exit')">Ausgang</button>
+					<button id="save" onclick="save()">Speichern</button>
+					<a id="download_json" class="hidden">Download JSON</a>
+					<div style="margin-top: 15px;">
+						<input id="custom_width" type="number" value="10"/>X
+						<input id="custom_height" type="number" value="10"/>
+						<button id="custom_box" onclick="add_custom_box()">eigene</button>
+						schwebe:<input id="custom_floating" type="checkbox" onclick="toggle_direction_select()">
+						<select id="float_direction" disabled="true">
+							<option value="u">hoch</option>
+							<option value="d">runter</option>
+							<option value="-">links</option>
+							<option value="+">rechts</option>
+						</select>
+						<input id="float_distance" type="number" value="100" disabled="true">
+					</div>
+					<div style="margin-top: 15px;">
+						<button id="delete" onclick="delete_object()">entfernen</button>
+						<input id="color" type="color" value="#00D2FF" onchange="update_color()"/>
+						<input id="color_object" type="color" value="#00D2FF" onchange="update_object_color()"/>
+						
+						<button id="float" onclick="add_float(60, 10, '+')">schwebe (rechts)</button>
+						<button id="float" onclick="add_float(60, 10, '-')">schwebe (links)</button>
+						<button id="float" onclick="add_float(60, 10, 'u')">schwebe (hoch)</button>
+						<button id="float" onclick="add_float(60, 10, 'd')">schwebe (runter)</button>
+					</div>
+				</div>
 			</div>
-			<div style="margin-top: 15px;">
-				<button id="delete" onclick="delete_object()">entfernen</button>
-				<input id="color" type="color" value="#00D2FF" onchange="update_color()"/>
-				<input id="color_object" type="color" value="#00D2FF" onchange="update_object_color()"/>
-				
-				<button id="float" onclick="add_float(60, 10, '+')">schwebe (rechts)</button>
-				<button id="float" onclick="add_float(60, 10, '-')">schwebe (links)</button>
-				<button id="float" onclick="add_float(60, 10, 'u')">schwebe (hoch)</button>
-				<button id="float" onclick="add_float(60, 10, 'd')">schwebe (runter)</button>
-			</div>
 		</div>
+		<button id="hide_tools" class="toggle_button" onclick="toggle_tools()">
+			<img id="arrow_up" src="./images/arrow_up.png"/>
+		</button>
+		<button id="show_tools" class="toggle_button hidden" onclick="toggle_tools()">
+			<img id="arrow_down" src="./images/arrow_down.png/"/>
+		</button>
 		<div id="container" class="container"></div>
 		
 		<script>
@@ -75,6 +172,35 @@
 			var last_selected = undefined;
 			var last_selected_floating = false;
 			var selected_color = $("#color").val();
+			
+			function toggle_tools()
+			{
+				var tools = $("#tools");
+				var button_hide = $("#hide_tools");
+				var button_show = $("#show_tools");
+				if ($(tools).hasClass("hidden"))
+				{
+					$(tools).removeClass("hidden");
+					$(button_hide).removeClass("hidden");
+					$(button_show).addClass("hidden");
+				}
+				else
+				{
+					$(tools).addClass("hidden");
+					$(button_hide).addClass("hidden");
+					$(button_show).removeClass("hidden");
+				}
+			}
+			
+			function set_level_file()
+			{
+				var uploaded_json = document.getElementById("upload_json").files;
+				console.log(uploaded_json);
+				if (uploaded_json.length > 0)
+				{
+					$("#loaded_level").text(uploaded_json[0].name);
+				}
+			}
 			
 			function parse_rgb_from_hex(color)
 			{
@@ -209,6 +335,10 @@
 				var url  = URL.createObjectURL(blob);
 				
 				var a = document.getElementById("download_json");
+				if ($(a).hasClass("hidden"))
+				{
+					$(a).removeClass("hidden");
+				}
 				a.download = "level.json";
 				a.href = url;
 				a.textContent = "Download JSON";
