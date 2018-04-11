@@ -554,11 +554,11 @@
 				rectY = box_y;
 				if (box_x == undefined)
 				{
-					var rectX = stage.getWidth() / 2 - 50;
+					var rectX = $(document).scrollLeft() + 100;
 				}
 				if (box_y == undefined)
 				{
-					var rectY = stage.getHeight() / 2 - 25;
+					var rectY = $(document).scrollTop() + 100;
 				}
 				
 				if (color == undefined)
@@ -750,8 +750,8 @@
 				}
 				if (group_x == undefined && group_y == undefined)
 				{
-					group.attrs.x = stage.getWidth() / 2 - 50;
-					group.attrs.y = stage.getHeight() / 2 - 25;
+					group.attrs.x = $(document).scrollLeft() + 100;
+					group.attrs.y = $(document).scrollTop() + 100;
 				}
 				var layer = new Konva.Layer();
 				layer.add(group);
