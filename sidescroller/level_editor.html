@@ -312,6 +312,10 @@
 					var min_max_diff_x = max_x - min_x;
 					var min_max_diff_y = max_y - min_y;
 					var color_rgb = obj[10];
+					if (color_rgb == undefined)
+					{
+						color_rgb = [0, 210, 255];
+					}
 					var obj_color = parse_hex_from_rgb(color_rgb);
 					if (parseInt(float) == 1)
 					{
