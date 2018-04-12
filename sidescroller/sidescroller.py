@@ -409,7 +409,8 @@ def load_level(level_file):
 			color = (color_rgb[0], color_rgb[1], color_rgb[2])
 		except IndexError:
 			color = (255, 107, 0)
-		sprite = sprite_object(key, x, y, w, h, color, group=death_zones)
+		sprite = sprite_object(x, y, w, h, color)
+		death_zones.add(sprite);
 	return exit, obstacles, objects, spawn, level_width, level_height, floaters
 
 ending = False
