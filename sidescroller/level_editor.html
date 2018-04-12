@@ -18,6 +18,10 @@
 				background: #EDF6FD;
 			}
 			
+			input[type=number] {
+				width: 80px;
+			}
+			
 			input[type=color] {
 				background: none;
 				border-style: solid;
@@ -73,14 +77,16 @@
 			}
 			
 			.tools_wrapper {
-				height: 10%;
+				/*height: 10%;*/
+				width: 95%;
+				position: fixed;
+				top: 0px;
+				z-index: 1;
 			}
 			
 			.tools {
 				/*height: 10%;*/
 				background-color: white;
-				width: 95%;
-				position: fixed;
 				border: solid;
 				border-color: black;
 				border-width: 2px;
@@ -88,7 +94,6 @@
 				border-bottom-right-radius: 20px;
 				border-bottom-left-radius: 20px;
 				border-top: none;
-				z-index: 1;
 			}
 			
 			.toggle_button {
@@ -98,6 +103,16 @@
 				top: 3px;
 			}
 			
+			.tab {
+				display: inline;
+			}
+			
+			.tab_button {
+				border-top: none;
+				border-top-left-radius: 0px;
+				border-top-right-radius: 0px;
+			}
+			
 			.hidden {
 				display: none;
 			}
@@ -105,29 +120,46 @@
 	</head>
 	<body onload="set_level_file()">
 		<div class="tools_wrapper">
-			<div id="tools" class="tools">
+			<div id="tabs">
+				<div id="tab_level" class="tab">
+					<button id="tab_button_level" class="tab_button" onclick="change_tool_view('level')">Level</button>
+				</div>
+				<div id="tab_tools" class="tab">
+					<button id="tab_button_tools" class="tab_button" onclick="change_tool_view('tools')">Objekte</button>
+				</div>
+				<div id="tab_specs" class="tab">
+					<button id="tab_button_specs" class="tab_button" onclick="change_tool_view('specs')">Eigenschaften</button>
+				</div>
+			</div>
+			<div id="level" class="tools tool_container">
 				<div id="sizer" class="sizer">
-					<input id="width" type="number" value=400></input> X 
-					<input id="height" type="number" value="300"></input>
+					<input id="width" type="number" value=400 title="Breite"></input> X 
+					<input id="height" type="number" value="300" title="Höhe"></input>
 					<button style="margin-top: 10px;" onclick="create_stage()">Anlegen</button>
 					<input type="file" id="upload_json" accept=".json" class="input_file" oninput="set_level_file()"></input>
 					<label for="upload_json">Level-Datei laden</label>
 					<span id="loaded_level"></span>
 				</div>
+				<div style="margin-top: 10px;">
+					<button id="save" onclick="save()">Speichern</button>
+					<a id="download_json" class="hidden">Download JSON</a>
+				</div>
+			</div>
+			
+			<div id="tools" class="tools tool_container hidden">
 				<div class="buttons">
 					<button id="spawn" onclick="add_box(7, 20, '#FFFFFF', 'spawn')">Start-Punkt</button>
+					<button id="exit" onclick="add_box(7, 20, '#8EFF8A', 'exit')">Ausgang</button>
 					<button id="box1" onclick="add_box(30, 30)">30x30</button>
 					<button id="box2" onclick="add_box(60, 60)">60x60</button>
 					<button id="box3" onclick="add_box(100, 10)">100x10</button>
-					<button id="exit" onclick="add_box(7, 20, '#8EFF8A', 'exit')">Ausgang</button>
-					<button id="save" onclick="save()">Speichern</button>
-					<a id="download_json" class="hidden">Download JSON</a>
+					<button id="delete" onclick="delete_object()">entfernen</button>
 					<div style="margin-top: 15px;">
-						<input id="custom_width" type="number" value="10"/>X
-						<input id="custom_height" type="number" value="10"/>
 						<button id="custom_box" onclick="add_custom_box()">eigene</button>
+						<input id="custom_width" type="number" value="10" title="Breite"/>X
+						<input id="custom_height" type="number" value="10" title="Höhe"/>
 						schwebe:<input id="custom_floating" type="checkbox" onclick="toggle_direction_select()">
-						<select id="float_direction" disabled="true">
+						<select id="custom_float_direction" disabled="true">
 							<option value="u">hoch</option>
 							<option value="d">runter</option>
 							<option value="-">links</option>
@@ -136,15 +168,26 @@
 						<input id="float_distance" type="number" value="100" disabled="true">
 					</div>
 					<div style="margin-top: 15px;">
-						<button id="delete" onclick="delete_object()">entfernen</button>
 						<input id="color" type="color" value="#00D2FF" onchange="update_color()"/>
-						<input id="color_object" type="color" value="#00D2FF" onchange="update_object_color()"/>
-						
-						<button id="float" onclick="add_float(60, 10, '+')">schwebe (rechts)</button>
-						<button id="float" onclick="add_float(60, 10, '-')">schwebe (links)</button>
-						<button id="float" onclick="add_float(60, 10, 'u')">schwebe (hoch)</button>
-						<button id="float" onclick="add_float(60, 10, 'd')">schwebe (runter)</button>
+						<input id="color_object" type="color" value="#00D2FF" onchange="update_object_color('#color_object')"/>
+						<button id="float" onclick="prepare_float()">schwebe</button>
+						<select id="float_direction">
+							<option value="u">hoch</option>
+							<option value="d">runter</option>
+							<option value="-">links</option>
+							<option value="+">rechts</option>
+						</select>
 					</div>
+				</div>
+			</div>
+			
+			<div id="specs" class="hidden tools tool_container hidden">
+				<div>
+					<input id="spec_width" type="number" title="Breite"/>X
+					<input id="spec_height" type="number" title="Höhe"/>
+					<button id="update_specs" onclick="update_object_specs()" title="wende Anpassungen am Objekt an">aktualisieren</button>
+					<input id="spec_color" type="color" value="#00D2FF" onchange="update_object_color('#spec_color')"/>
+					<button id="spec_delete" onclick="delete_object()">entfernen</button>
 				</div>
 			</div>
 		</div>
@@ -175,7 +218,7 @@
 			
 			function toggle_tools()
 			{
-				var tools = $("#tools");
+				var tools = $(".tools_wrapper");
 				var button_hide = $("#hide_tools");
 				var button_show = $("#show_tools");
 				if ($(tools).hasClass("hidden"))
@@ -190,6 +233,13 @@
 					$(button_hide).addClass("hidden");
 					$(button_show).removeClass("hidden");
 				}
+			}
+			
+			function change_tool_view(view){
+				var container = $("#"+view);
+				var all_containers = $(".tool_container");
+				$(all_containers).addClass("hidden");
+				$(container).removeClass("hidden");
 			}
 			
 			function set_level_file()
@@ -227,9 +277,9 @@
 				selected_color = $("#color").val();
 			}
 			
-			function update_object_color()
+			function update_object_color(source)
 			{
-				var selected_color = $("#color_object").val();
+				var selected_color = $(source).val();
 				var color_rgb = parse_rgb_from_hex(selected_color);
 				if (last_selected != undefined)
 				{
@@ -253,17 +303,27 @@
 				}
 			}
 			
+			function update_object_specs()
+			{
+				var attrs = last_selected.attrs;
+				var new_width = $("#spec_width").val();
+				var new_height = $("#spec_height").val();
+				attrs.width = new_width;
+				attrs.height = new_height;
+				last_selected.draw();
+			}
+			
 			function toggle_direction_select()
 			{
 				var checked = $("#custom_floating").is(":checked");
 				if (checked)
 				{
-					$("#float_direction").prop("disabled", false);
+					$("#custom_float_direction").prop("disabled", false);
 					$("#float_distance").prop("disabled", false);
 				}
 				else
 				{
-					$("#float_direction").prop("disabled", true);
+					$("#custom_float_direction").prop("disabled", true);
 					$("#float_distance").prop("disabled", true);
 				}
 			}
@@ -537,7 +597,7 @@
 				var floating = $("#custom_floating").is(":checked");
 				if (floating)
 				{
-					var direction = $("#float_direction").val();
+					var direction = $("#custom_float_direction").val();
 					var distance = parseInt($("#float_distance").val());
 					add_float(width, height, direction, undefined, undefined, undefined, undefined, distance);
 				}
@@ -591,7 +651,12 @@
 					}
 					last_selected = event.target;
 					last_selected_floating = false;
-					$("#color_object").val(event.target.attrs.fill);
+					var attrs = event.target.attrs;
+					var color = attrs.fill;
+					$("#color_object").val(color);
+					$("#spec_color").val(color)
+					$("#spec_width").val(attrs.width);
+					$("#spec_height").val(attrs.height);
 					event.target.attrs.stroke = "green";
 					event.target.draw();
 					console.log(event.target.attrs);
@@ -634,6 +699,13 @@
 				}
 				layer.remove();
 				//layer.destroy();
+			}
+			
+			function prepare_float()
+			{
+				var direction = $("#float_direction").val();
+				console.log(direction);
+				add_float(60, 10, direction);
 			}
 			
 			function add_float(fwidth, fheight, direction, color, group_x = undefined, group_y = undefined, minimum_values = undefined, distance = undefined)
@@ -705,9 +777,15 @@
 					}
 					last_selected = event.target;
 					last_selected_floating = true;
-					event.target.attrs.stroke = "green";
+					var attrs = event.target.attrs;
+					var color = attrs.fill;
+					$("#color_object").val(color);
+					$("#spec_color").val(color)
+					$("#spec_width").val(attrs.width);
+					$("#spec_height").val(attrs.height);
+					attrs.stroke = "green";
 					event.target.draw();
-					console.log(event.target.attrs);
+					console.log(attrs);
 				});
 				float.floating = true;
 				
