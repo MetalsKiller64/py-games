@@ -330,7 +330,7 @@ def respawn():
 	hitbox.rect.y = spawn_y -1
 	sprites.empty()
 	exit, obstacles, objects, spawn, level_width, level_height, floaters = load_level(level_name)
-	return exit, obstacles, objects, spawn, level_width, level_height, floaters
+	return exit, obstacles, objects, spawn, level_width, level_height, floaters, gameover
 
 def load_json(filename):
 	f = open(filename)
