@@ -177,6 +177,9 @@
 							<option value="-">links</option>
 							<option value="+">rechts</option>
 						</select>
+						<button id="death_zone" onclick="add_death_zone()">gefahr</button>
+						<input id="dzone_width" type="number" value="100" title="Breite"/>X
+						<input id="dzone_height" type="number" value="10" title="Höhe"/>
 					</div>
 				</div>
 			</div>
@@ -207,9 +210,10 @@
 			});*/
 			
 			var stage = undefined;
-			var level_json = {"obstacles": {}, "exit": undefined, "spawn": undefined, "level_width": 1000};
+			var level_json = {"obstacles": {}, "death_zones": {}, "exit": undefined, "spawn": undefined, "level_width": 1000};
 			var objects = {};
 			var floats = {};
+			var dzones = {};
 			var spawn = undefined;
 			var exit = undefined;
 			var last_selected = undefined;
@@ -281,7 +285,7 @@
 			{
 				var selected_color = $(source).val();
 				var color_rgb = parse_rgb_from_hex(selected_color);
-				if (last_selected != undefined)
+				if (last_selected != undefined && last_selected.deadly != true)
 				{
 					last_selected.attrs.fill = selected_color;
 					if (last_selected_floating)
@@ -330,7 +334,7 @@
 			
 			function save()
 			{
-				level_json = {"obstacles": {}, "exit": undefined, "spawn": undefined, "level_width": 1000};
+				level_json = {"obstacles": {}, "death_zones": {}, "exit": undefined, "spawn": undefined, "level_width": 1000};
 				for (key in objects)
 				{
 					var obj = objects[key];
@@ -374,6 +378,18 @@
 					var height = attrs.height;
 					var color = parse_rgb_from_hex(attrs.fill);
 					level_json["obstacles"][key] = [x, y ,width, height, 1, x, max_x, direction, min_y, max_y, color];
+				}
+				
+				for (key in dzones)
+				{
+					var obj = dzones[key];
+					var attrs = obj.attrs;
+					var x = attrs.x;
+					var y = attrs.y;
+					var width = attrs.width;
+					var height = attrs.height;
+					var color = parse_rgb_from_hex(attrs.fill);
+					level_json["death_zones"][key] = [x, y, width, height, color];
 				}
 				
 				var spawn_x = spawn.attrs.x;
@@ -471,6 +487,7 @@
 			function create_stage_from_json(json_object)
 			{
 				var obstacles = json_object["obstacles"];
+				var dzones = json_object["death_zones"];
 				var spawn = json_object["spawn"];
 				var exit = json_object["exit"];
 				var width = json_object["level_width"];
@@ -528,6 +545,16 @@
 					{
 						add_box(w, h, obj_color, "box", x, y);
 					}
+				}
+				
+				for (key in dzones)
+				{
+					var obj = dzones[key];
+					var x = obj[0];
+					var y = obj[1];
+					var w = obj[2];
+					var h = obj[3];
+					add_death_zone(x, y, w, h);
 				}
 				
 				var spawn_x = spawn[0];
@@ -607,6 +634,20 @@
 				}
 			}
 			
+			function add_death_zone(x = undefined, y = undefined, width = undefined, height = undefined)
+			{
+				if (width == undefined)
+				{
+					var width = parseInt($("#dzone_width").val());
+				}
+				if (height == undefined)
+				{
+					var height = parseInt($("#dzone_height").val());
+				}
+				var color = "#F0100A";
+				add_box(width, height, color, type="dzone", x, y);
+			}
+			
 			function add_box(box_width, box_height, color, type = "box", box_x = undefined, box_y = undefined)
 			{
 				
@@ -626,16 +667,26 @@
 					color = selected_color;
 				}
 				
+				var box_dash = [0, 0];
+				var box_stroke = "black";
+				if (type == "dzone")
+				{
+					box_dash = [5, 5];
+					// box_stroke = "#FFEF14"
+				}
+				
 				var box = new Konva.Rect({
 					x: rectX,
 					y: rectY,
 					width: box_width,
 					height: box_height,
 					fill: color,
-					stroke: 'black',
+					stroke: box_stroke,
 					strokeWidth: 4,
+					dash: box_dash,
 					draggable: true
 				});
+				box.deadly = false;
 				
 				box.on('mouseover', function() {
 					document.body.style.cursor = 'pointer';
@@ -653,8 +704,11 @@
 					last_selected_floating = false;
 					var attrs = event.target.attrs;
 					var color = attrs.fill;
-					$("#color_object").val(color);
-					$("#spec_color").val(color)
+					if (type != "dzone")
+					{
+						$("#color_object").val(color);
+						$("#spec_color").val(color)
+					}
 					$("#spec_width").val(attrs.width);
 					$("#spec_height").val(attrs.height);
 					event.target.attrs.stroke = "green";
@@ -682,6 +736,13 @@
 				{
 					exit = box;
 				}
+				else if (type == "dzone")
+				{
+					var key = Object.keys(dzones).length.toString() + Math.random().toString(36).substring(2);
+					box.object_key = key;
+					box.deadly = true;
+					dzones[key] = box;
+				}
 			}
 			
 			function delete_object()
@@ -691,6 +752,11 @@
 				{
 					var layer = last_selected.parent.parent;
 					delete floats[key];
+				}
+				else if (last_selected.deadly)
+				{
+					var layer = last_selected.parent;
+					delete dzones[key];
 				}
 				else
 				{
