@@ -1,24 +1,22 @@
-import pygame, random, time, json, sys
+import pygame, random, time, json, sys, argparse
 
 level_name = "level.json"
-if len(sys.argv) > 1:
-	filename = sys.argv[1]
-	if filename.endswith(".json"):
-		level_name = filename
-	else:
-		level_name = filename+".json"
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-l", "--level", dest="level_name", default="level.json", help="Pfad zur Level-Datei")
+parser.add_argument("-g", "--geometry", dest="screen_geometry", default="800x600", help="Bildschirmgröße (Breite, Höhe)")
+args = parser.parse_args()
+
+level_name = args.level_name
+geometry = args.screen_geometry
+if not geometry.count("x") == 1:
+	print ("diese Bildschirmgröße verstehe ich nicht!")
+	sys.exit()
+screen_width, screen_height = (int(x) for x in geometry.split("x"))
 
 pygame.init()
-screen = pygame.display.set_mode((400, 300))
+screen = pygame.display.set_mode((screen_width, screen_height))
 clock = pygame.time.Clock()
-done = False
-x = 10
-y = 260
-
-jumping = False
-falling = False
-jump_cycle = 0
-floor = ""
 
 class Player(pygame.sprite.Sprite):
 	def __init__(self, spawn_x, spawn_y):
@@ -187,7 +185,7 @@ class Player(pygame.sprite.Sprite):
 			self.rect.x += speed
 			self.level_pos_x += speed
 			hitbox.rect.x += speed
-			if self.rect.x >= 300 and self.level_pos_x <= (level_width - 100):
+			if self.rect.x >= (screen_width - 100) and self.level_pos_x <= (level_width - 100):
 				self.rect.x -= speed
 				#self.level_pos_x -= speed
 				hitbox.rect.x -= speed
@@ -207,7 +205,7 @@ class Player(pygame.sprite.Sprite):
 			self.rect.y += speed
 			self.level_pos_y += speed
 			hitbox.rect.y += speed
-			if self.rect.y >= 200 and self.level_pos_y <= (level_height - 100):
+			if self.rect.y >= (screen_height - 100) and self.level_pos_y <= (level_height - 100):
 				self.rect.y -= speed
 				#self.level_pos_y -= speed
 				hitbox.rect.y -= speed
@@ -430,6 +428,7 @@ print (p.level_pos_y)
 hitbox = hitbox_object(spawn_x-1, spawn_y-1, 9,22, (255, 255, 255))
 dpass = 0
 
+done = False
 while not done:
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
