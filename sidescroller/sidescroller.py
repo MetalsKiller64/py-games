@@ -5,10 +5,14 @@ level_name = "level.json"
 parser = argparse.ArgumentParser()
 parser.add_argument("-l", "--level", dest="level_name", default="level.json", help="Pfad zur Level-Datei")
 parser.add_argument("-g", "--geometry", dest="screen_geometry", default="800x600", help="Bildschirmgröße (Breite, Höhe)")
+parser.add_argument("-f", "--frame-rate", dest="frame_rate", action="store", type=int, default=60, help="FPS")
+parser.add_argument("-dh", "--draw-hitbox", dest="draw_hitbox", action="store_true", default=False, help="Spieler Hitbox anzeigen")
 args = parser.parse_args()
 
-level_name = args.level_name
+level_name = args.level_name+".json"
 geometry = args.screen_geometry
+frame_rate = args.frame_rate
+draw_hitbox = args.draw_hitbox
 if not geometry.count("x") == 1:
 	print ("diese Bildschirmgröße verstehe ich nicht!")
 	sys.exit()
@@ -433,7 +437,7 @@ while not done:
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
 			done = True
-	clock.tick(60)
+	clock.tick(frame_rate)
 	#print (str(clock.get_fps()))
 	if p.dead:
 		if dpass < 30:
@@ -453,6 +457,8 @@ while not done:
 	screen.fill((0, 0, 0))
 	sprites.draw(screen)
 	death_zones.draw(screen)
+	if draw_hitbox:
+		hitbox.draw(screen)
 	p.draw(screen)
 	if p.frame >= p.speed_rate:
 		p.frame = 0
