@@ -705,7 +705,7 @@ while not done:
 		f["level_pos_y"] = f_level_pos_y
 		floaters[name] = f
 	
-	if p.rect.colliderect(exit):
+	if hitbox.rect.colliderect(exit):
 		p.exit_reached = True
 	
 	if p.exit_reached:
