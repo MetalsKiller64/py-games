@@ -9,7 +9,9 @@ parser.add_argument("-f", "--frame-rate", dest="frame_rate", action="store", typ
 parser.add_argument("-dh", "--draw-hitbox", dest="draw_hitbox", action="store_true", default=False, help="Spieler Hitbox anzeigen")
 args = parser.parse_args()
 
-level_name = args.level_name+".json"
+level_name = args.level_name
+if not level_name.endswith(".json"):
+	level_name+= ".json"
 geometry = args.screen_geometry
 frame_rate = args.frame_rate
 draw_hitbox = args.draw_hitbox
