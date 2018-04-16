@@ -43,6 +43,7 @@ class Player(pygame.sprite.Sprite):
 		self.speed_max = 3
 		self.fall_speed_max = 4
 		self.sprint_max = 6
+		self.air_speed_max = 2
 		self.sprinting = False
 		self.colliding = {"left": False, "right": False, "top": False, "bottom": False}
 		self.frame = 0
@@ -93,10 +94,10 @@ class Player(pygame.sprite.Sprite):
 		pressed = pygame.key.get_pressed()
 		if not self.sprinting:
 			for direction in self.speed:
-				if direction == "left" or direction == "right":
+				if direction == "left" or direction == "right" and not self.jumping and not self.falling:
 					if self.speed[direction] > 3:
 						self.speed[direction] -= 1
-		if not pressed[pygame.K_LEFT] and not pressed[pygame.K_RIGHT] and self.frame < self.speed_rate:
+		if not pressed[pygame.K_LEFT] and not pressed[pygame.K_RIGHT] and self.frame < self.speed_rate and not self.jumping and not self.falling:
 			for direction in self.speed:
 				if direction == "left" or direction == "right":
 					if self.speed[direction] > 0:
@@ -111,6 +112,8 @@ class Player(pygame.sprite.Sprite):
 			print ("shift")
 			self.sprinting = True
 			speed_max = self.sprint_max
+		if self.jumping or self.falling:
+			speed_max = self.air_speed_max
 
 		if pressed[pygame.K_SPACE] and not self.jumping and not self.falling:
 			if not self.jump_block:
@@ -320,7 +323,8 @@ class Player(pygame.sprite.Sprite):
 				speed = self.speed["left"]
 			new_x = self.rect.x - speed
 			speed, collision_object = self.check_path("left", speed, [new_x, self.rect.y])
-			print ("moving left: %d %s" % (speed, str(collision_object)))
+			#print ("moving left: %d %s" % (speed, str(collision_object)))
+			self.speed[direction] = speed
 			self.rect.x -= speed
 			self.level_pos_x -= speed
 			hitbox.rect.x -= speed
@@ -338,7 +342,8 @@ class Player(pygame.sprite.Sprite):
 				speed = self.speed["right"]
 			new_x = self.rect.x + speed
 			speed, collision_object = self.check_path("right", speed, [new_x, self.rect.y])
-			print ("moving right: %d %s" % (speed, str(collision_object)))
+			#print ("moving right: %d %s" % (speed, str(collision_object)))
+			self.speed[direction] = speed
 			self.rect.x += speed
 			self.level_pos_x += speed
 			hitbox.rect.x += speed
