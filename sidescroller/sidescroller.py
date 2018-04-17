@@ -333,8 +333,9 @@ class Player(pygame.sprite.Sprite):
 				self.rect.x += speed
 				#self.level_pos_x += speed
 				hitbox.rect.x += speed
-				sprites.update("move", ["right", speed])
-				death_zones.update("move", ["right", speed])
+				all_sprite_objects.update("move", ["right", speed])
+				#sprites.update("move", ["right", speed])
+				#death_zones.update("move", ["right", speed])
 		elif direction == "right":
 			if self.stop_x_movement and not force:
 				return
@@ -352,8 +353,9 @@ class Player(pygame.sprite.Sprite):
 				self.rect.x -= speed
 				#self.level_pos_x -= speed
 				hitbox.rect.x -= speed
-				sprites.update("move", ["left", speed])
-				death_zones.update("move", ["left", speed])
+				all_sprite_objects.update("move", ["left", speed])
+				#sprites.update("move", ["left", speed])
+				#death_zones.update("move", ["left", speed])
 		elif direction == "up":
 			if speed == None:
 				speed = self.speed["up"]
@@ -368,8 +370,9 @@ class Player(pygame.sprite.Sprite):
 				self.rect.y += speed
 				#self.level_pos_y += speed
 				hitbox.rect.y += speed
-				sprites.update("move", ["down", speed])
-				death_zones.update("move", ["down", speed])
+				all_sprite_objects.update("move", ["down", speed])
+				#sprites.update("move", ["down", speed])
+				#death_zones.update("move", ["down", speed])
 		elif direction == "down":
 			if speed == None:
 				speed = self.speed["down"]
@@ -384,8 +387,9 @@ class Player(pygame.sprite.Sprite):
 				self.rect.y -= speed
 				#self.level_pos_y -= speed
 				hitbox.rect.y -= speed
-				sprites.update("move", ["up", speed])
-				death_zones.update("move", ["up", speed])
+				all_sprite_objects.update("move", ["up", speed])
+				#sprites.update("move", ["up", speed])
+				#death_zones.update("move", ["up", speed])
 
 class hitbox_object(pygame.sprite.Sprite):
 	def __init__(self, x, y, width, height, color):
@@ -529,7 +533,7 @@ def load_level(level_file):
 	spawn = [int(s[0]), int(s[1])]
 	e = j["exit"]
 	exit = sprite_object(int(e[0]), int(e[1]), int(e[2]), int(e[3]), (138, 206, 255))
-	sprites.add(exit)
+	all_sprite_objects.add(exit)
 	obstacles = {}
 	objects = {"exit": exit}
 	floaters = {}
@@ -569,6 +573,7 @@ def load_level(level_file):
 			level_pos_y = float_y_min
 		sprite = sprite_object(x, y, w, h, color, floating)
 		sprites.add(sprite)
+		all_sprite_objects.add(sprite)
 		obstacles[k] = sprite
 		objects[k] = sprite
 		if floating:
@@ -594,6 +599,7 @@ def load_level(level_file):
 		except IndexError:
 			color = (255, 107, 0)
 		sprite = sprite_object(x, y, w, h, color)
+		all_sprite_objects.add(sprite)
 		death_zones.add(sprite);
 	return exit, obstacles, objects, spawn, level_width, level_height, floaters
 
@@ -601,6 +607,7 @@ ending = False
 gameover = False
 font = pygame.font.SysFont("comicsansms", 30)
 sprites = pygame.sprite.Group()
+all_sprite_objects = pygame.sprite.Group()
 death_zones = pygame.sprite.Group()
 exit, obstacles, objects, spawn, level_width, level_height, floaters = load_level(level_name)
 spawn_x = spawn[0]
@@ -636,8 +643,9 @@ while not done:
 		pygame.display.flip()
 		continue
 	screen.fill((0, 0, 0))
-	sprites.draw(screen)
-	death_zones.draw(screen)
+	all_sprite_objects.draw(screen)
+	#sprites.draw(screen)
+	#death_zones.draw(screen)
 	if draw_hitbox:
 		hitbox.draw(screen)
 	p.draw(screen)
