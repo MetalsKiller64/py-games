@@ -516,6 +516,8 @@ def respawn():
 	hitbox.rect.x = spawn_x -1 
 	hitbox.rect.y = spawn_y -1
 	sprites.empty()
+	all_sprite_objects.empty()
+	death_zones.empty()
 	exit, obstacles, objects, spawn, level_width, level_height, floaters = load_level(level_name)
 	return exit, obstacles, objects, spawn, level_width, level_height, floaters, gameover
 
