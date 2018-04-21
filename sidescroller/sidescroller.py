@@ -19,10 +19,10 @@ if not geometry.count("x") == 1:
 	print ("diese Bildschirmgröße verstehe ich nicht!")
 	sys.exit()
 screen_width, screen_height = (int(x) for x in geometry.split("x"))
-
+screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.event.set_allowed([pygame.KEYDOWN, pygame.KEYUP])
 pygame.init()
-screen = pygame.display.set_mode((screen_width, screen_height))
+
 clock = pygame.time.Clock()
 
 class Player(pygame.sprite.Sprite):
