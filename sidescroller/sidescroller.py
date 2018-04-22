@@ -2,11 +2,16 @@ import pygame, random, time, json, sys, argparse
 
 level_name = "level.json"
 
+def color_tuple(arg_string):
+	r, g, b = (int(x) for x in arg_string.split(","))
+	return (r,g,b)
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-l", "--level", dest="level_name", default="level.json", help="Pfad zur Level-Datei")
 parser.add_argument("-g", "--geometry", dest="screen_geometry", default="800x600", help="Bildschirmgröße (Breite, Höhe)")
 parser.add_argument("-f", "--frame-rate", dest="frame_rate", action="store", type=int, default=60, help="FPS")
 parser.add_argument("-dh", "--draw-hitbox", dest="draw_hitbox", action="store_true", default=False, help="Spieler Hitbox anzeigen")
+parser.add_argument("-bg", "--background-color", dest="bg_color", default=(184, 207, 245), type=color_tuple, help="Hintergrundfarbe (r,g,b)")
 args = parser.parse_args()
 
 level_name = args.level_name
@@ -15,6 +20,7 @@ if not level_name.endswith(".json"):
 geometry = args.screen_geometry
 frame_rate = args.frame_rate
 draw_hitbox = args.draw_hitbox
+bg_color = args.bg_color
 if not geometry.count("x") == 1:
 	print ("diese Bildschirmgröße verstehe ich nicht!")
 	sys.exit()
@@ -473,7 +479,9 @@ class sprite_object(pygame.sprite.Sprite):
 	def __init__(self, x, y, width, height, color, floating = False):
 		pygame.sprite.Sprite.__init__(self)
 		self.image = pygame.Surface([width, height])
-		self.image.fill(color)
+		self.image.fill((0,0,0))
+		self.image.fill(color, [1, 1, width-2, height-2])
+		#self.image.fill(color)
 
 		self.rect = self.image.get_rect()
 		self.rect.x = x
@@ -703,7 +711,7 @@ while not done:
 		show_gameover()
 		pygame.display.flip()
 		continue
-	screen.fill((0, 0, 0))
+	screen.fill(bg_color)
 	all_sprite_objects.draw(screen)
 	#sprites.draw(screen)
 	#death_zones.draw(screen)
