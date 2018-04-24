@@ -123,7 +123,9 @@ class Player(pygame.sprite.Sprite):
 		shift_keys = [pygame.K_LSHIFT, pygame.K_RSHIFT]
 		#print (events)
 		for event in events:
-			if event.type == pygame.KEYDOWN:
+			if event.type == pygame.QUIT:
+				sys.exit(0)
+			elif event.type == pygame.KEYDOWN:
 				key = event.key
 				if key in shift_keys:
 					self.sprinting = True
@@ -691,9 +693,6 @@ dpass = 0
 
 done = False
 while not done:
-	for event in pygame.event.get():
-		if event.type == pygame.QUIT:
-			done = True
 	clock.tick(frame_rate)
 	#print (str(clock.get_fps()))
 	if p.dead:
