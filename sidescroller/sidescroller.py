@@ -1,4 +1,4 @@
-import pygame, random, time, json, sys, argparse
+import pygame, random, time, json, sys, argparse, math
 
 level_name = "level.json"
 
@@ -616,45 +616,26 @@ def load_level(level_file):
 		w = int(obj[2])
 		h = int(obj[3])
 		floating = bool(int(obj[4]))
-		float_x_min = int(obj[5])
-		float_x_max = int(obj[6])
-		direction = obj[7]
-		float_y_min = int(obj[8])
-		float_y_max = int(obj[9])
+		float_points = obj[5]
+		reverse_points = []
+		reverse_points += (x for x in reversed(float_points))
 		try:
-			color_rgb = obj[10]
+			color_rgb = obj[6]
 			color = (color_rgb[0], color_rgb[1], color_rgb[2])
 		except IndexError:
 			color = (255, 107, 0)
 		try:
-			float_speed = int(obj[11])
+			float_speed = int(obj[7])
 		except IndexError:
 			float_speed = 1
-		if direction == "+":
-			level_pos_x = float_x_min
-			level_pos_y = y
-		elif direction == "-":
-			level_pos_x = float_x_max
-			level_pos_y = y
-		elif direction == "u":
-			level_pos_x = x
-			level_pos_y = float_y_max
-		elif direction == "d":
-			level_pos_x = x
-			level_pos_y = float_y_min
 		sprite = sprite_object(x, y, w, h, color, floating)
 		sprites.add(sprite)
 		all_sprite_objects.add(sprite)
 		obstacles[k] = sprite
 		objects[k] = sprite
 		if floating:
-			f = {"name": k,
-			 "x_min": float_x_min, "x_max": float_x_max,
-			 "y_min": float_y_min, "y_max": float_y_max,
-			 "direction": direction, "level_pos_x": level_pos_x, "level_pos_y": level_pos_y,
-			 "level_pos_x_min": float_x_min, "level_pos_x_max": float_x_max,
-			 "level_pos_y_min": float_y_min, "level_pos_y_max": float_y_max,
-			 "speed": float_speed}
+			f = {"name": k, "target_index": 1, "reverse": False, "player": False,
+				"points": float_points, "speed": float_speed, "reverse_points": reverse_points}
 			floaters[k] = f
 	
 	dzones = j["death_zones"]
@@ -733,10 +714,12 @@ while not done:
 	for name in floaters:
 		f = floaters[name]
 		obj = obstacles[name]
+		f["player"] = False
 		if p.last_floor == obj:
 			p.floating = True
-			p.float_direction = f["direction"]
-			p.floating_speed = f["speed"]
+			#p.float_direction = f["direction"]
+			#p.floating_speed = f["speed"]
+			f["player"] = True
 	
 	#print (p.falling)
 	#print (p.floating)
@@ -748,47 +731,100 @@ while not done:
 		f = floaters[name]
 		obj = obstacles[name]
 		rect = obj.rect
+		x = rect.x;
 		y = rect.y;
-		x_min = f["x_min"]
-		x_max = f["x_max"]
-		y_min = f["y_min"]
-		y_max = f["y_max"]
-		f_level_pos_x = f["level_pos_x"]
-		f_level_pos_x_min = f["level_pos_x_min"]
-		f_level_pos_x_max = f["level_pos_x_max"]
-		f_level_pos_y = f["level_pos_y"]
-		f_level_pos_y_min = f["level_pos_y_min"]
-		f_level_pos_y_max = f["level_pos_y_max"]
-		direction = f["direction"]
+		target_index = f["target_index"]
 		speed = f["speed"]
-		if direction == "+" and f_level_pos_x < f_level_pos_x_max:
-			obj.move("right", speed)
-			f_level_pos_x += speed
-		elif direction == "+":
-			direction = "-"
-		elif direction == "-" and f_level_pos_x > f_level_pos_x_min:
-			obj.move("left", speed)
-			f_level_pos_x -= speed
-		elif direction == "-":
-			direction = "+"
-		elif direction == "u" and f_level_pos_y > f_level_pos_y_min:
-			obj.move("up", speed)
-			f_level_pos_y -= speed
-			#print (direction)
-		elif direction == "u":
-			direction = "d"
-			#print (direction)
-		elif direction == "d" and f_level_pos_y < f_level_pos_y_max:
-			obj.move("down", speed)
-			f_level_pos_y += speed
-			#print (direction)
-		elif direction == "d":
-			direction = "u"
-			#print (direction)
-		f["direction"] = direction
-		f["level_pos_x"] = f_level_pos_x
-		f["level_pos_y"] = f_level_pos_y
-		floaters[name] = f
+		points = f["points"]
+		reverse_points = f["reverse_points"]
+		reverse = f["reverse"]
+		if not reverse:
+			try:
+				target = points[target_index]
+			except IndexError:
+				reverse = True
+				target_index = 1
+				target = reverse_points[target_index]
+		else:
+			try:
+				target = reverse_points[target_index]
+			except IndexError:
+				reverse = False
+				target_index = 1
+				target = points[target_index]
+		
+		dest_x = target[0]
+		dest_y = target[1]
+		if dest_x > x:
+			x_distance = dest_x - x
+		else:
+			x_distance = x - dest_x
+		if dest_y > y:
+			y_distance = dest_y - y
+		else:
+			y_distance = y - dest_y
+		angle = math.atan2(-y_distance, x_distance) % (2 * math.pi)
+		player_x = p.rect.x
+		player_y = p.rect.y
+		hitbox_x = hitbox.rect.x
+		hitbox_y = hitbox.rect.y
+
+		if not reverse:
+			if x < dest_x:
+				x_pos = x + math.cos(angle) * speed
+				player_x = player_x + math.cos(angle) * speed
+				hitbox_x = hitbox_x + math.cos(angle) * speed
+			else:
+				x_pos = x - math.cos(angle) * speed
+				player_x = player_x - math.cos(angle) * speed
+				hitbox_x = hitbox_x - math.cos(angle) * speed
+			if y > dest_y:
+				y_pos = y - math.ceil(abs(math.sin(angle) * speed))
+				player_y = player_y - math.ceil(abs(math.sin(angle) * speed))
+				hitbox_y = hitbox_y - math.ceil(abs(math.sin(angle) * speed))
+			else:
+				y_pos = y - math.sin(angle) * speed
+				player_y = player_y - math.sin(angle) * speed
+				hitbox_y = hitbox_y - math.sin(angle) * speed
+		else:
+			if x < dest_x:
+				x_pos = x + math.cos(angle) * speed
+				player_x = player_x + math.cos(angle) * speed
+				hitbox_x = hitbox_x + math.cos(angle) * speed
+			else:
+				x_pos = x - math.ceil(math.cos(angle) * speed)
+				player_x = player_x - math.ceil(math.cos(angle) * speed)
+				hitbox_x = hitbox_x - math.ceil(math.cos(angle) * speed)
+			if y > dest_y:
+				y_pos = y - math.ceil(abs(math.sin(angle) * speed))
+				player_y = player_y - math.ceil(abs(math.sin(angle) * speed))
+				hitbox_y = hitbox_y - math.ceil(abs(math.sin(angle) * speed))
+			else:
+				y_pos = y - math.sin(angle) * speed
+				player_y = player_y - math.sin(angle) * speed
+				hitbox_y = hitbox_y - math.sin(angle) * speed
+		player_carrying = f["player"]
+		if obj.rect.x > dest_x:
+			obj.rect.x = math.ceil(x_pos) if math.ceil(x_pos) >= dest_x else dest_x
+		else:
+			obj.rect.x = math.ceil(x_pos) if math.ceil(x_pos) <= dest_x else dest_x
+		if obj.rect.y > dest_y:
+			obj.rect.y = math.ceil(y_pos) if math.ceil(y_pos) >= dest_y else dest_y
+		else:
+			obj.rect.y = math.ceil(y_pos) if math.ceil(y_pos) <= dest_y else dest_y	
+	
+		if player_carrying:
+			p.rect.x = math.ceil(player_x)
+			p.rect.y = math.ceil(player_y)
+			hitbox.rect.x = math.ceil(hitbox_x)
+			hitbox.rect.y = math.ceil(hitbox_y)
+		
+		if obj.rect.x == dest_x and obj.rect.y == dest_y:
+			target_index += 1
+		f["reverse"] = reverse
+		f["target_index"] = target_index
+	
+		
 	
 	if hitbox.rect.colliderect(exit):
 		p.exit_reached = True
