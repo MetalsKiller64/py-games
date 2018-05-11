@@ -118,7 +118,7 @@
 			}
 		</style>
 	</head>
-	<body onload="set_level_file()">
+	<body onload="init()">
 		<div class="tools_wrapper">
 			<div id="tabs">
 				<div id="tab_level" class="tab">
@@ -131,7 +131,7 @@
 					<button id="tab_button_specs" class="tab_button" onclick="change_tool_view('specs')">Eigenschaften</button>
 				</div>
 			</div>
-			<div id="level" class="tools tool_container">
+			<div id="level" class="tools tool_container hidden">
 				<div id="sizer" class="sizer">
 					<input id="width" type="number" value=400 title="Breite"></input> X 
 					<input id="height" type="number" value="300" title="Höhe"></input>
@@ -146,7 +146,7 @@
 				</div>
 			</div>
 			
-			<div id="tools" class="tools tool_container hidden">
+			<div id="tools" class="tools tool_container">
 				<div class="buttons">
 					<button id="spawn" onclick="add_box(7, 20, '#FFFFFF', 'spawn')">Start-Punkt</button>
 					<button id="exit" onclick="add_box(7, 20, '#8EFF8A', 'exit')">Ausgang</button>
@@ -158,25 +158,13 @@
 						<button id="custom_box" onclick="add_custom_box()">eigene</button>
 						<input id="custom_width" type="number" value="10" title="Breite"/>X
 						<input id="custom_height" type="number" value="10" title="Höhe"/>
-						schwebe:<input id="custom_floating" type="checkbox" onclick="toggle_direction_select()">
-						<select id="custom_float_direction" disabled="true">
-							<option value="u">hoch</option>
-							<option value="d">runter</option>
-							<option value="-">links</option>
-							<option value="+">rechts</option>
-						</select>
-						<input id="float_distance" type="number" value="100" disabled="true">
+						schwebe:<input id="custom_floating" type="checkbox">
 					</div>
 					<div style="margin-top: 15px;">
 						<input id="color" type="color" value="#00D2FF" onchange="update_color()"/>
 						<input id="color_object" type="color" value="#00D2FF" onchange="update_object_color('#color_object')"/>
-						<button id="float" onclick="prepare_float()">schwebe</button>
-						<select id="float_direction">
-							<option value="u">hoch</option>
-							<option value="d">runter</option>
-							<option value="-">links</option>
-							<option value="+">rechts</option>
-						</select>
+						<button id="float" onclick="add_float(60,10)">schwebe</button>
+						<button id="path_selection" onclick="toggle_path_selection()">Path</button>
 						<button id="death_zone" onclick="add_death_zone()">gefahr</button>
 						<input id="dzone_width" type="number" value="100" title="Breite"/>X
 						<input id="dzone_height" type="number" value="10" title="Höhe"/>
@@ -219,6 +207,13 @@
 			var last_selected = undefined;
 			var last_selected_floating = false;
 			var selected_color = $("#color").val();
+			var path_selection_active = false;
+			
+			function init()
+			{
+				set_level_file();
+				create_stage();
+			}
 			
 			function toggle_tools()
 			{
@@ -252,7 +247,7 @@
 				console.log(uploaded_json);
 				if (uploaded_json.length > 0)
 				{
-					$("#loaded_level").text(uploaded_json[0].name);
+					create_stage();
 				}
 			}
 			
@@ -288,23 +283,36 @@
 				if (last_selected != undefined && last_selected.deadly != true)
 				{
 					last_selected.attrs.fill = selected_color;
+					color_light = light_up_color(selected_color, 100);
 					if (last_selected_floating)
 					{
-						var range = last_selected.parent.children[0]
-						var color_lightened = "#";
-						for (i in color_rgb)
+						for (index in last_selected.point_objects)
 						{
-							var part = color_rgb[i];
-							var part_ = part += 50;
-							var part_ = part_ > 255 ? 255 : part_;
-							var hex_value = part_.toString(16);
-							color_lightened += hex_value;
+							var element = last_selected.point_objects[index];
+							element.attrs.fill = color_light;
 						}
-						range.attrs.fill = color_lightened;
-						range.draw();
 					}
-					last_selected.draw();
+					last_selected.parent.draw();
 				}
+			}
+			
+			function light_up_color(color, addition = undefined)
+			{
+				if ( addition == undefined )
+				{
+					addition = 50;
+				}
+				var color_lightened = "#";
+				var color_rgb = parse_rgb_from_hex(color);
+				for (i in color_rgb)
+				{
+					var part = color_rgb[i];
+					var part_ = part += addition;
+					part_ = part_ > 255 ? 255 : part_;
+					var hex_value = part_.toString(16);
+					color_lightened += hex_value;
+				}
+				return color_lightened;
 			}
 			
 			function update_object_specs()
@@ -317,78 +325,42 @@
 				last_selected.draw();
 			}
 			
-			function toggle_direction_select()
-			{
-				var checked = $("#custom_floating").is(":checked");
-				if (checked)
-				{
-					$("#custom_float_direction").prop("disabled", false);
-					$("#float_distance").prop("disabled", false);
-				}
-				else
-				{
-					$("#custom_float_direction").prop("disabled", true);
-					$("#float_distance").prop("disabled", true);
-				}
-			}
-			
 			function save()
 			{
 				level_json = {"obstacles": {}, "death_zones": {}, "exit": undefined, "spawn": undefined, "level_width": 1000};
 				for (key in objects)
 				{
 					var obj = objects[key];
-					var attrs = obj.attrs;
-					var x = attrs.x;
-					var y = attrs.y;
-					var width = attrs.width;
-					var height = attrs.height;
-					var color = parse_rgb_from_hex(attrs.fill);
-					level_json["obstacles"][key] = [x, y ,width, height, 0, 0, 0, "", 0, 0, color];
+					var x = obj.attrs.x;
+					var y = obj.attrs.y;
+					var width = obj.attrs.width;
+					var height = obj.attrs.height;
+					var color = parse_rgb_from_hex(obj.attrs.fill);
+					level_json["obstacles"][key] = [x, y ,width, height, 0, [], color];
 				}
 				
+				console.log(floats);
 				for (key in floats)
 				{
-					var obj = floats[key];
-					var float = obj[0];
-					var direction = obj[1];
-					var min_max_diff = obj[2];
-					var parent_attrs = float.parent.attrs
-					var x = parent_attrs.x;
-					var y = parent_attrs.y;
-					//var max_x = parent_attrs.x + 100;
-					var max_x = x + min_max_diff;
-					var max_y = y + min_max_diff;
-					var min_x = x;
-					var min_y = y;
-					if (direction == "u")
-					{
-						y += float.attrs.y;
-						/*y += min_max_diff;
-						min_y = y;
-						max_y = y;*/
-					}
-					/*
-					if (direction == "d")
-					{
-						max_y += min_max_diff;
-					}*/
-					var attrs = float.attrs;
-					var width = attrs.width;
-					var height = attrs.height;
-					var color = parse_rgb_from_hex(attrs.fill);
-					level_json["obstacles"][key] = [x, y ,width, height, 1, x, max_x, direction, min_y, max_y, color];
+					console.log("save float "+key);
+					var float = floats[key];
+					var x = float.attrs.x;
+					var y = float.attrs.y;
+					var width = float.attrs.width;
+					var height = float.attrs.height;
+					var float_points = float.float_points;
+					var color = parse_rgb_from_hex(float.attrs.fill);
+					level_json["obstacles"][key] = [x, y ,width, height, 1, float_points, color];
 				}
 				
 				for (key in dzones)
 				{
-					var obj = dzones[key];
-					var attrs = obj.attrs;
-					var x = attrs.x;
-					var y = attrs.y;
-					var width = attrs.width;
-					var height = attrs.height;
-					var color = parse_rgb_from_hex(attrs.fill);
+					var dzone = dzones[key];
+					var x = dzone.attrs.x;
+					var y = dzone.attrs.y;
+					var width = dzone.attrs.width;
+					var height = dzone.attrs.height;
+					var color = parse_rgb_from_hex(dzone.attrs.fill);
 					level_json["death_zones"][key] = [x, y, width, height, color];
 				}
 				
@@ -418,6 +390,16 @@
 				a.download = "level.json";
 				a.href = url;
 				a.textContent = "Download JSON";
+			}
+			
+			function create_stage_object(width, height)
+			{
+				stage = new Konva.Stage({
+					container: 'container',
+					width: width,
+					height: height
+				});
+				return stage;
 			}
 			
 			function create_stage(width = undefined, height = undefined)
@@ -475,11 +457,7 @@
 				level_json["level_width"] = width;
 				level_json["level_height"] = height;
 				
-				stage = new Konva.Stage({
-					container: 'container',
-					width: width,
-					height: height
-				});
+				stage = create_stage_object(width, height);
 				
 				$(".konvajs-content").attr("style", ($(".konvajs-content").attr("style") + " border: solid;" ));
 			}
@@ -496,11 +474,7 @@
 				level_json["level_width"] = width;
 				level_json["level_height"] = height;
 				
-				stage = new Konva.Stage({
-					container: 'container',
-					width: width,
-					height: height
-				});
+				stage = create_stage_object(width, height);
 				
 				$(".konvajs-content").attr("style", ($(".konvajs-content").attr("style") + " border: solid;" ));
 				for (key in obstacles)
@@ -511,14 +485,8 @@
 					var w = obj[2];
 					var h = obj[3];
 					var float = obj[4];
-					var min_x = obj[5];
-					var max_x = obj[6];
-					var direction = obj[7];
-					var min_y = obj[8];
-					var max_y = obj[9];
-					var min_max_diff_x = max_x - min_x;
-					var min_max_diff_y = max_y - min_y;
-					var color_rgb = obj[10];
+					var float_points = obj[5];
+					var color_rgb = obj[6];
 					if (color_rgb == undefined)
 					{
 						color_rgb = [0, 210, 255];
@@ -526,20 +494,7 @@
 					var obj_color = parse_hex_from_rgb(color_rgb);
 					if (parseInt(float) == 1)
 					{
-						var minimum_values = [];
-						if (direction == "+" || direction == "-")
-						{
-							minimum_values = [min_x, max_x];
-						}
-						else if (direction == "u" || direction == "d")
-						{
-							minimum_values = [min_y, max_y]
-							if (direction == "u")
-							{
-								y -= min_max_diff_y;
-							}
-						}
-						add_float(w, h, direction, obj_color, x, y, minimum_values);
+						add_float(w, h, obj_color, x, y, float_points);
 					}
 					else
 					{
@@ -594,7 +549,7 @@
 					var x = parent_attrs.x;
 					var y = parent_attrs.y;
 					var c = obj.attrs.fill;
-					add_float(w, h, direction, c, x, y);
+					add_float(w, h, c, x, y);
 				}
 				
 				if (spawn != undefined)
@@ -624,9 +579,7 @@
 				var floating = $("#custom_floating").is(":checked");
 				if (floating)
 				{
-					var direction = $("#custom_float_direction").val();
-					var distance = parseInt($("#float_distance").val());
-					add_float(width, height, direction, undefined, undefined, undefined, undefined, distance);
+					add_float(width, height, undefined, undefined, undefined);
 				}
 				else
 				{
@@ -748,56 +701,33 @@
 			function delete_object()
 			{
 				var key = last_selected.object_key;
+				var layer = last_selected.parent;
 				if (last_selected.floating)
 				{
-					var layer = last_selected.parent.parent;
 					delete floats[key];
 				}
 				else if (last_selected.deadly)
 				{
-					var layer = last_selected.parent;
 					delete dzones[key];
 				}
 				else
 				{
-					var layer = last_selected.parent;
 					delete objects[key];
 				}
 				layer.remove();
-				//layer.destroy();
 			}
 			
-			function prepare_float()
-			{
-				var direction = $("#float_direction").val();
-				console.log(direction);
-				add_float(60, 10, direction);
-			}
-			
-			function add_float(fwidth, fheight, direction, color, group_x = undefined, group_y = undefined, minimum_values = undefined, distance = undefined)
+			function add_float(width, height, color, x = undefined, y = undefined, float_points = undefined)
 			{
 				if (color == undefined)
 				{
 					color = selected_color;
 				}
 				
-				if (direction == "+" || direction == "-")
+				if (x == undefined && y == undefined)
 				{
-					var min_max_diff = 50
-				}
-				else if (direction == "u" || direction == "d")
-				{
-					var min_max_diff = 50
-				}
-				
-				if (minimum_values != undefined)
-				{
-					min_max_diff = minimum_values[1] - minimum_values[0];
-				}
-				
-				if (distance != undefined)
-				{
-					min_max_diff = distance;
+					x = $(document).scrollLeft() + 100;
+					y = $(document).scrollTop() + 100;
 				}
 				
 				var color_rgb = parse_rgb_from_hex(color);
@@ -811,29 +741,36 @@
 					color_lightened += hex_value;
 				}
 				
-				var group = new Konva.Group();
-				group.setAttr("draggable", true);
-				var fx = 0;
-				var fy = 0;
-				if (direction == "u")
-				{
-					fy = min_max_diff;
-				}
 				var float = new Konva.Rect({
-					x: fx,
-					y: fy,
-					width: fwidth,
-					height: fheight,
+					x: x,
+					y: y,
+					width: width,
+					height: height,
 					fill: color,
 					stroke: 'black',
 					strokeWidth: 4,
-					draggable: false
+					draggable: true
 				});
+				
+				var x_center = x + width / 2;
+				var y_center = y + height / 2;
+				var line = new Konva.Line({
+					points: [x_center, y_center],
+					fill: "black",
+					stroke: "black",
+					strokeWidth: 2
+				});
+				
 				float.on('mouseover', function() {
 					document.body.style.cursor = 'pointer';
 				});
 				float.on('mouseout', function() {
 					document.body.style.cursor = 'default';
+				});
+				float.on("dragmove", function (event) {
+					line.attrs.points[0] = event.target.attrs.x + width / 2;
+					line.attrs.points[1] = event.target.attrs.y + height / 2;
+					event.target.float_points[0] = {"x": event.target.attrs.x, "y": event.target.attrs.y};
 				});
 				float.on('click', function(event) {
 					if (last_selected != undefined)
@@ -855,56 +792,129 @@
 				});
 				float.floating = true;
 				
-				var rwidth = fwidth;
-				var rheight = fheight;
-				var rx = 0;
-				var ry = 0;
-				if (direction == "+" || direction == "-")
-				{
-					rwidth += min_max_diff;
-				}
-				else if (direction == "u" || direction == "d")
-				{
-					rheight += min_max_diff;
-				}
-				if (direction == "-")
-				{
-					rx = -min_max_diff;
-				}
-				var range = new Konva.Rect({
-					x: rx,
-					y: ry,
-					width: rwidth,
-					height: rheight,
-					fill: color_lightened,
-					stroke: 'black',
-					strokeWidth: 1,
-					draggable: false
-				});
-				group.add(range);
-				group.add(float);
-				
-				if (group_x != undefined)
-				{
-					group.attrs.x = group_x;
-				}
-				if (group_y != undefined)
-				{
-					group.attrs.y = group_y;
-				}
-				if (group_x == undefined && group_y == undefined)
-				{
-					group.attrs.x = $(document).scrollLeft() + 100;
-					group.attrs.y = $(document).scrollTop() + 100;
-				}
 				var layer = new Konva.Layer();
-				layer.add(group);
+				layer.add(float);
+				layer.add(line);
 				stage.add(layer);
 				//, float.parent
 				//floats.push([float, direction, min_max_diff]);
 				var key = Object.keys(floats).length.toString() + Math.random().toString(36).substring(2);
 				float.object_key = key;
-				floats[key] = [float, direction, min_max_diff];
+				float.line = line;
+				float.float_points = [{"x": x, "y": y}];
+				float.point_objects = [];
+				if ( float_points != undefined )
+				{
+					for (index in float_points)
+					{
+						if (index == 0)
+						{
+							continue;
+						}
+						add_path_element(undefined, float_points[index], float);
+					}
+				}
+				else
+				{
+					add_path_element(undefined, {"x": (x+100), "y": y}, float);
+					float.dispatchEvent(new MouseEvent("click"));
+				}
+				floats[key] = float;
+			}
+			
+			function add_path_element(event = undefined, position = undefined, float_element = undefined)
+			{
+				if ( event != undefined )
+				{
+					var element = event.target;
+				}
+				else
+				{
+					var element = new Object();
+					element.nodeType = "Stage";
+				}
+				if ( element.nodeType == "Stage" )
+				{
+					if ( last_selected_floating == false && float_element == undefined )
+					{
+						return;
+					}
+					if ( position == undefined )
+					{
+						position = stage.getPointerPosition();
+					}
+					if ( float_element != undefined )
+					{
+						var selected_element = float_element;
+					}
+					else
+					{
+						var selected_element = last_selected;
+					}
+					
+					position["x"] = parseInt(position["x"]);
+					position["y"] = parseInt(position["y"]);
+					var position_x = position["x"];
+					var position_y = position["y"];
+					var width = selected_element.attrs.width;
+					var height = selected_element.attrs.height;
+					var position_x_center = position_x + width / 2;
+					var position_y_center = position_y + height / 2;
+					var color = light_up_color(selected_element.attrs.fill, 100);
+					var layer = selected_element.parent;
+					var line = selected_element.line;
+					var x_index = line.attrs.points.length;
+					line.attrs.points.push(position_x_center);
+					line.attrs.points.push(position_y_center);
+					
+					var box = new Konva.Rect({
+						x: position_x,
+						y: position_y,
+						width: width,
+						height: height,
+						fill: color,
+						stroke: "black",
+						strokeWidth: 2,
+						draggable: true
+					});
+					
+					var points_index = selected_element.float_points.length;
+					selected_element.float_points.push(position);
+					selected_element.point_objects.push(box);
+					
+					box.on('mouseover', function() {
+						document.body.style.cursor = 'pointer';
+					});
+					box.on('mouseout', function() {
+						document.body.style.cursor = 'default';
+					});
+					
+					box.on("dragmove", function (event) {
+						var new_x = event.target.attrs.x + width / 2;
+						var new_y = event.target.attrs.y + height / 2;
+						line.attrs.points[x_index] = new_x;
+						line.attrs.points[x_index+1] = new_y;
+						selected_element.float_points[points_index] = {"x": event.target.attrs.x, "y": event.target.attrs.y};
+						layer.draw();
+					});
+					
+					layer.add(box);
+					layer.draw();
+				}
+			};
+			
+			function toggle_path_selection()
+			{
+				if( path_selection_active )
+				{
+					path_selection_active = false;
+					stage.removeEventListener("click", add_path_element);
+				}
+				else
+				{
+					path_selection_active = true;
+					stage.on("click", add_path_element);
+				}
 			}
 		</script>
 	</body>
