@@ -75,7 +75,6 @@ class Player(pygame.sprite.Sprite):
 		self.floating_speed = 0
 		self.jump_block = False
 		self.block_cycle = 0
-		self.stop_x_movement = False
 		self.exit_reached = False
 		self.dead = False
 		self.move_left = False
@@ -95,21 +94,7 @@ class Player(pygame.sprite.Sprite):
 			self.last_floor = None
 			self.falling = True
 			self.floating = False
-			"""collision_objects = pygame.sprite.spritecollide(hitbox, sprites, False)
-			collision_parts = {}
-			for o in collision_objects:
-				collision = pygame.sprite.spritecollideany(hitbox, [o], pygame.sprite.collide_mask)
-				if collision:
-					part = check_collision(hitbox, collision)
-					collision_parts[part] = collision
-			print (collision_parts)
-			if "top" in collision_parts:
-				self.last_floor = collision_parts["top"]
-			print ("last_floor: "+str(self.last_floor))
-			if self.last_floor == None and not self.jumping and not self.falling:
-				self.fall()"""
-		#else:
-		#	self.check_ground()
+		
 		pressed = pygame.key.get_pressed()
 		if not self.sprinting:
 			for direction in self.speed:
@@ -129,7 +114,6 @@ class Player(pygame.sprite.Sprite):
 		speed_max = self.speed_max
 		self.sprinting = False
 		shift_keys = [pygame.K_LSHIFT, pygame.K_RSHIFT]
-		#print (events)
 		axes = {"0": {"-1": "left", "1": "right", "0": "stop"}, "1": {"-1": "up", "1": "down", "0": "stop"}}
 		for event in events:
 			if event.type == pygame.JOYBUTTONDOWN:
@@ -173,8 +157,6 @@ class Player(pygame.sprite.Sprite):
 				if key in shift_keys:
 					self.sprinting = True
 				elif key == pygame.K_SPACE:
-					print ("space down")
-					print ("falling: "+str(self.falling), self.colliding["bottom"], self.speed["down"])
 					if not self.jumping and self.speed["down"] == 0:
 						self.speed["up"] = 4
 						self.jumping = True
@@ -183,31 +165,15 @@ class Player(pygame.sprite.Sprite):
 			elif event.type == pygame.KEYUP:
 				key = event.key
 				if key == pygame.K_SPACE:
-					print ("space up")
 					self.space_pressed = False
 		
 		#if (pressed[pygame.K_LSHIFT] or pressed[pygame.K_RSHIFT]) and (not self.jumping and not self.falling):
-			print ("shift")
 		if pressed[pygame.K_LSHIFT] or pressed[pygame.K_RSHIFT] or self.sprinting:
 			self.sprinting = True
 			speed_max = self.sprint_max
 		if self.jumping or self.falling:
 			speed_max = self.air_speed_max
 
-		"""
-		if pressed[pygame.K_SPACE]:
-			#if self.jump_height < 3:
-			#	self.jump_height += 1
-			if not self.jumping and not self.falling:
-				if not self.jump_block:
-					self.speed["up"] = 4
-					self.jump()
-				#self.move("up")
-				#self.jump()
-		if pressed[pygame.K_DOWN]:
-			## TODO: ducken?
-			pass"""
-		if pressed[pygame.K_LEFT]:
 		if pressed[pygame.K_LEFT] or self.move_left:
 			if self.colliding["left"]:
 				self.speed["left"] = 0
@@ -218,6 +184,7 @@ class Player(pygame.sprite.Sprite):
 					if self.speed["right"] > 0:
 						self.speed["right"] -= 1
 				self.frame = 0
+			print (self.speed["left"])
 			self.move("left")
 		elif pressed[pygame.K_RIGHT] or self.move_right:
 			if self.colliding["right"]:
@@ -230,12 +197,7 @@ class Player(pygame.sprite.Sprite):
 						self.speed["left"] -= 1
 				self.frame = 0
 			self.move("right")
-		"""else:
-			if self.speed["left"] > 0:
-				self.speed["left"] -= 1
-			if self.speed["right"] > 0:
-				self.speed["right"] -= 1
-		"""
+
 	def jump(self):
 		print ("jumping")
 		self.floating = False
@@ -251,7 +213,6 @@ class Player(pygame.sprite.Sprite):
 				self.jump_frame_factor += 1
 		frame_max *= self.jump_frame_factor
 		jump_cycle_max = int(frame_max / 4)
-		print (frame_max, self.jump_frames, self.jump_frame_factor, jump_cycle_max, self.jump_cycle)
 		jcm = jump_cycle_max if jump_cycle_max > 3 else 3
 		if self.jump_cycle == jcm:
 			self.speed["up"] -= 1
@@ -259,12 +220,7 @@ class Player(pygame.sprite.Sprite):
 			print ("slow down")
 		else:
 			self.jump_cycle += 1
-			#self.move("up", 4)
-		#else:
-		#	self.jumping = False
-		#	self.falling = True
-		#	self.jump_cycle = 0
-		#	return
+		
 		if self.speed["up"] <= 0:
 			print ("jump end")
 			self.speed["up"] = 0
@@ -274,15 +230,6 @@ class Player(pygame.sprite.Sprite):
 			self.jump_frame_factor = 0
 			self.fall()
 		
-		
-		"""if self.jump_frames >= (10 * self.jump_height):
-			self.speed["up"] = 0
-			self.jump_frames = 0
-			self.falling = True
-			self.jump_cycle = 0
-			self.jumping = False
-			self.fall()
-		"""
 		self.move("up")
 	
 	def fall(self):
@@ -291,9 +238,7 @@ class Player(pygame.sprite.Sprite):
 			self.speed["up"] -= 1
 		elif self.speed["down"] < self.fall_speed_max:
 			self.speed["down"] += 1
-			#print ("fall")
 		self.move("down")
-#		self.move("down", 4)
 	
 	def float(self):
 		direction = self.float_direction
@@ -331,24 +276,20 @@ class Player(pygame.sprite.Sprite):
 		h_x = hitbox.rect.x
 		h_y = hitbox.rect.y
 		if direction == "left":
-			#print (current_x, new_x)
 			for x in reversed(range(new_x, current_x)):
 				x_diff = current_x - x
 				hitbox.rect.x -= x_diff
 				colliding_objects = pygame.sprite.spritecollide(hitbox, sprites, False)
 				for o in colliding_objects:
 					collision = pygame.sprite.spritecollideany(hitbox, [o], pygame.sprite.collide_mask)
-					print (collision)
 					if collision:
 						collided_part = check_collision(hitbox, collision)
-						print (collided_part)
 						if collided_part == "right":
 							hitbox.rect.x = h_x
 							self.colliding["left"] = True
 							if self.last_floor == None and not self.jumping:
 								self.falling = True
 								self.jump_cycle = 0
-								print ("fall")
 							if p.floating:
 								return [0, collision]
 							if x_diff == 1:
@@ -367,7 +308,6 @@ class Player(pygame.sprite.Sprite):
 							hitbox.rect.x = h_x
 							self.colliding["right"] = True
 							if self.last_floor == None and not self.jumping:
-								print ("fall")
 								self.falling = True
 								self.jump_cycle = 0
 							if p.floating:
@@ -378,7 +318,6 @@ class Player(pygame.sprite.Sprite):
 		elif direction == "up":
 			self.colliding["top"] = True
 			for y in reversed(range(new_y, current_y)):
-				print ("y: "+str(y)+" current_y: "+str(current_y))
 				y_diff = current_y - y
 				hitbox.rect.y -= y_diff
 				colliding_objects = pygame.sprite.spritecollide(hitbox, sprites, False)
@@ -397,19 +336,14 @@ class Player(pygame.sprite.Sprite):
 			self.colliding["bottom"] = True
 			for y in range(current_y, new_y):
 				y_diff = y - current_y
-				print (y, current_y, y_diff)
 				hitbox.rect.y += y_diff
-				print (h_y, hitbox.rect.y)
 				colliding_objects = pygame.sprite.spritecollide(hitbox, sprites, False)
 				for o in colliding_objects:
 					collision = pygame.sprite.spritecollideany(hitbox, [o], pygame.sprite.collide_mask)
 					if collision:
 						collided_part = check_collision(hitbox, collision)
-						print (collided_part)
 						if collided_part == "top" or collided_part == "stop":
-							print (hitbox.rect.y)
 							hitbox.rect.y = h_y
-							#print ("bottom collision")
 							self.colliding["bottom"] = True
 							self.falling = False
 							self.last_floor = collision
@@ -419,22 +353,12 @@ class Player(pygame.sprite.Sprite):
 		return [speed, None]
 				
 	
-	def move(self, direction, speed = None, force = False):
-		#print ("move "+direction)
-		#print ("x: "+str(self.rect.x))
-		#print ("level_pos_x: "+str(self.level_pos_x))
-		#print ("y: "+str(self.rect.y))
-		#print ("hy: "+str(hitbox.rect.y))
-		#print ("level_pos_y: "+str(self.level_pos_y))
-		#print ("lh: "+str(level_height -100))
+	def move(self, direction, speed = None):
 		if direction == "left":
-			if self.stop_x_movement and not force:
-				return
 			if speed == None:
 				speed = self.speed["left"]
 			new_x = self.rect.x - speed
 			speed, collision_object = self.check_path("left", speed, [new_x, self.rect.y])
-			#print ("moving left: %d %s" % (speed, str(collision_object)))
 			self.speed[direction] = speed
 			self.rect.x -= speed
 			self.level_pos_x -= speed
@@ -442,19 +366,13 @@ class Player(pygame.sprite.Sprite):
 			self.check_ground()
 			if self.rect.x <= 100 and self.level_pos_x >= 100:
 				self.rect.x += speed
-				#self.level_pos_x += speed
 				hitbox.rect.x += speed
 				all_sprite_objects.update("move", ["right", speed])
-				#sprites.update("move", ["right", speed])
-				#death_zones.update("move", ["right", speed])
 		elif direction == "right":
-			if self.stop_x_movement and not force:
-				return
 			if speed == None:
 				speed = self.speed["right"]
 			new_x = self.rect.x + speed
 			speed, collision_object = self.check_path("right", speed, [new_x, self.rect.y])
-			#print ("moving right: %d %s" % (speed, str(collision_object)))
 			self.speed[direction] = speed
 			self.rect.x += speed
 			self.level_pos_x += speed
@@ -462,15 +380,11 @@ class Player(pygame.sprite.Sprite):
 			self.check_ground()
 			if self.rect.x >= (screen_width - 100) and self.level_pos_x <= (level_width - 100):
 				self.rect.x -= speed
-				#self.level_pos_x -= speed
 				hitbox.rect.x -= speed
 				all_sprite_objects.update("move", ["left", speed])
-				#sprites.update("move", ["left", speed])
-				#death_zones.update("move", ["left", speed])
 		elif direction == "up":
 			if speed == None:
 				speed = self.speed["up"]
-			print ("up-speed: "+str(speed))
 			new_y = self.rect.y - speed
 			speed, collision_object = self.check_path("up", speed, [self.rect.x, new_y])
 			self.rect.y -= speed
@@ -479,16 +393,12 @@ class Player(pygame.sprite.Sprite):
 			self.check_ground()
 			if self.rect.y <= 100 and self.level_pos_y >= level_height:
 				self.rect.y += speed
-				#self.level_pos_y += speed
 				hitbox.rect.y += speed
 				all_sprite_objects.update("move", ["down", speed])
-				#sprites.update("move", ["down", speed])
-				#death_zones.update("move", ["down", speed])
 		elif direction == "down":
 			if speed == None:
 				speed = self.speed["down"]
 			new_y = self.rect.y + speed
-			print ("current_y: "+str(self.rect.y)+" new_y: "+str(new_y))
 			speed, collision_object = self.check_path("down", speed, [self.rect.x, new_y])
 			self.rect.y += speed
 			self.level_pos_y += speed
@@ -496,11 +406,8 @@ class Player(pygame.sprite.Sprite):
 			self.check_ground()
 			if self.rect.y >= (screen_height - 100) and self.level_pos_y <= (level_height - 100):
 				self.rect.y -= speed
-				#self.level_pos_y -= speed
 				hitbox.rect.y -= speed
 				all_sprite_objects.update("move", ["up", speed])
-				#sprites.update("move", ["up", speed])
-				#death_zones.update("move", ["up", speed])
 
 class hitbox_object(pygame.sprite.Sprite):
 	def __init__(self, x, y, width, height, color):
@@ -527,7 +434,6 @@ class sprite_object(pygame.sprite.Sprite):
 		self.image = pygame.Surface([width, height])
 		self.image.fill((0,0,0))
 		self.image.fill(color, [1, 1, width-2, height-2])
-		#self.image.fill(color)
 
 		self.rect = self.image.get_rect()
 		self.rect.x = x
@@ -575,17 +481,13 @@ def check_collision(a, b):
 	
 	if abs_diff_x > abs_diff_y:
 		if diff_x > 0:
-			#print ("r")
 			return "right"
 		else:
-			#print ("l")
 			return "left"
 	elif abs_diff_y > abs_diff_x:
 		if diff_y > 0:
-			#print ("b")
 			return "bottom"
 		else:
-			#print ("t")
 			return "top"
 	else:
 		if diff_y > 0:
@@ -663,6 +565,7 @@ def load_level(level_file):
 		float_points = obj[5]
 		reverse_points = []
 		reverse_points += (x for x in reversed(float_points))
+		#print (obj)
 		try:
 			color_rgb = obj[6]
 			color = (color_rgb[0], color_rgb[1], color_rgb[2])
@@ -709,7 +612,6 @@ exit, obstacles, objects, spawn, level_width, level_height, floaters = load_leve
 spawn_x = spawn[0]
 spawn_y = spawn[1]
 p = Player(spawn_x, spawn_y)
-#print (p.rect.x)
 print (p.level_pos_x)
 print (p.level_pos_y)
 #hitbox = sprite_object(spawn_x-1, spawn_y-1, 10,24, (0, 0, 0), True)
@@ -719,7 +621,6 @@ dpass = 0
 done = False
 while not done:
 	clock.tick(frame_rate)
-	#print (str(clock.get_fps()))
 	if p.dead:
 		if dpass < 30:
 			dpass += 1
@@ -737,8 +638,6 @@ while not done:
 		continue
 	screen.fill(bg_color)
 	all_sprite_objects.draw(screen)
-	#sprites.draw(screen)
-	#death_zones.draw(screen)
 	if draw_hitbox:
 		hitbox.draw(screen)
 	p.draw(screen)
@@ -748,7 +647,6 @@ while not done:
 		p.frame += 1
 	if pygame.event.peek([pygame.KEYUP, pygame.KEYDOWN]):
 		p.handle_key_event()
-	#print (p.speed)
 	
 	p.colliding["right"] = False
 	p.colliding["left"] = False
@@ -761,13 +659,8 @@ while not done:
 		f["player"] = False
 		if p.last_floor == obj:
 			p.floating = True
-			#p.float_direction = f["direction"]
-			#p.floating_speed = f["speed"]
 			f["player"] = True
 	
-	#print (p.falling)
-	#print (p.floating)
-	#print (p.jumping)
 	p.handle_key_event()
 	p.handle_phys()
 	
@@ -879,7 +772,6 @@ while not done:
 
 	if p.rect.y >= 300:
 		p.dead = True
-		#respawn()
 	
 	if p.block_cycle >= 10:
 		p.block_cycle = 0
