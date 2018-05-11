@@ -316,7 +316,7 @@ class Player(pygame.sprite.Sprite):
 								x_diff = 0
 							return [x_diff, collision]
 		elif direction == "up":
-			self.colliding["top"] = True
+			#self.colliding["top"] = True
 			for y in reversed(range(new_y, current_y)):
 				y_diff = current_y - y
 				hitbox.rect.y -= y_diff
@@ -331,9 +331,11 @@ class Player(pygame.sprite.Sprite):
 							self.jumping = False
 							self.falling = True
 							self.jump_cycle = 0
+							if p.floating:
+								return [0, collision]
 							return [y_diff, collision]
 		elif direction == "down":
-			self.colliding["bottom"] = True
+			#self.colliding["bottom"] = True
 			for y in range(current_y, new_y):
 				y_diff = y - current_y
 				hitbox.rect.y += y_diff
@@ -690,57 +692,60 @@ while not done:
 				target_index = 1
 				target = points[target_index]
 		
-		dest_x = target[0]
-		dest_y = target[1]
-		if dest_x > x:
-			x_distance = dest_x - x
-		else:
-			x_distance = x - dest_x
+		dest_x = target["x"]
+		dest_y = target["y"]
+		player_x = p.rect.x
+		player_y = p.rect.y
 		if dest_y > y:
 			y_distance = dest_y - y
 		else:
 			y_distance = y - dest_y
+		if dest_x > x:
+			x_distance = dest_x - x
+		else:
+			x_distance = x - dest_x
+		
 		angle = math.atan2(-y_distance, x_distance) % (2 * math.pi)
-		player_x = p.rect.x
-		player_y = p.rect.y
-		hitbox_x = hitbox.rect.x
-		hitbox_y = hitbox.rect.y
-
 		if not reverse:
 			if x < dest_x:
 				x_pos = x + math.cos(angle) * speed
 				player_x = player_x + math.cos(angle) * speed
-				hitbox_x = hitbox_x + math.cos(angle) * speed
 			else:
 				x_pos = x - math.cos(angle) * speed
 				player_x = player_x - math.cos(angle) * speed
-				hitbox_x = hitbox_x - math.cos(angle) * speed
 			if y > dest_y:
 				y_pos = y - math.ceil(abs(math.sin(angle) * speed))
 				player_y = player_y - math.ceil(abs(math.sin(angle) * speed))
-				hitbox_y = hitbox_y - math.ceil(abs(math.sin(angle) * speed))
 			else:
 				y_pos = y - math.sin(angle) * speed
 				player_y = player_y - math.sin(angle) * speed
-				hitbox_y = hitbox_y - math.sin(angle) * speed
 		else:
 			if x < dest_x:
 				x_pos = x + math.cos(angle) * speed
 				player_x = player_x + math.cos(angle) * speed
-				hitbox_x = hitbox_x + math.cos(angle) * speed
 			else:
 				x_pos = x - math.ceil(math.cos(angle) * speed)
 				player_x = player_x - math.ceil(math.cos(angle) * speed)
-				hitbox_x = hitbox_x - math.ceil(math.cos(angle) * speed)
 			if y > dest_y:
 				y_pos = y - math.ceil(abs(math.sin(angle) * speed))
 				player_y = player_y - math.ceil(abs(math.sin(angle) * speed))
-				hitbox_y = hitbox_y - math.ceil(abs(math.sin(angle) * speed))
 			else:
 				y_pos = y - math.sin(angle) * speed
 				player_y = player_y - math.sin(angle) * speed
-				hitbox_y = hitbox_y - math.sin(angle) * speed
+		
 		player_carrying = f["player"]
+		if player_carrying:
+			x_diff = p.rect.x - math.ceil(player_x)
+			if x_diff > 0:
+				p.move("left", abs(x_diff))
+			else:
+				p.move("right", abs(x_diff))
+			y_diff = p.rect.y - math.ceil(player_y)
+			if y_diff > 0:
+				p.move("up", abs(y_diff))
+			else:
+				p.move("down", abs(y_diff))
+		
 		if obj.rect.x > dest_x:
 			obj.rect.x = math.ceil(x_pos) if math.ceil(x_pos) >= dest_x else dest_x
 		else:
@@ -749,19 +754,12 @@ while not done:
 			obj.rect.y = math.ceil(y_pos) if math.ceil(y_pos) >= dest_y else dest_y
 		else:
 			obj.rect.y = math.ceil(y_pos) if math.ceil(y_pos) <= dest_y else dest_y	
-	
-		if player_carrying:
-			p.rect.x = math.ceil(player_x)
-			p.rect.y = math.ceil(player_y)
-			hitbox.rect.x = math.ceil(hitbox_x)
-			hitbox.rect.y = math.ceil(hitbox_y)
 		
 		if obj.rect.x == dest_x and obj.rect.y == dest_y:
 			target_index += 1
 		f["reverse"] = reverse
 		f["target_index"] = target_index
 	
-		
 	
 	if hitbox.rect.colliderect(exit):
 		p.exit_reached = True
