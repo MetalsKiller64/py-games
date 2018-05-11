@@ -26,8 +26,14 @@ if not geometry.count("x") == 1:
 	sys.exit()
 screen_width, screen_height = (int(x) for x in geometry.split("x"))
 screen = pygame.display.set_mode((screen_width, screen_height))
-pygame.event.set_allowed([pygame.KEYDOWN, pygame.KEYUP])
 pygame.init()
+pygame.joystick.init()
+
+for x in range(pygame.joystick.get_count()):
+	j = pygame.joystick.Joystick(x)
+	j.init()
+	for b in range(j.get_numbuttons()):
+		print (j.get_button(b))
 
 clock = pygame.time.Clock()
 
@@ -72,6 +78,8 @@ class Player(pygame.sprite.Sprite):
 		self.stop_x_movement = False
 		self.exit_reached = False
 		self.dead = False
+		self.move_left = False
+		self.move_right	= False
 	
 	def draw(self, surface):
 		pygame.draw.rect(surface, (255, 7, 0), self.rect)
@@ -108,7 +116,7 @@ class Player(pygame.sprite.Sprite):
 				if direction == "left" or direction == "right" and not self.jumping and not self.falling:
 					if self.speed[direction] > 3:
 						self.speed[direction] -= 1
-		if not pressed[pygame.K_LEFT] and not pressed[pygame.K_RIGHT] and self.frame < self.speed_rate and not self.jumping and not self.falling:
+		if not self.move_left and not self.move_right and not pressed[pygame.K_LEFT] and not pressed[pygame.K_RIGHT] and self.frame < self.speed_rate and not self.jumping and not self.falling:
 			for direction in self.speed:
 				if direction == "left" or direction == "right":
 					if self.speed[direction] > 0:
@@ -122,8 +130,43 @@ class Player(pygame.sprite.Sprite):
 		self.sprinting = False
 		shift_keys = [pygame.K_LSHIFT, pygame.K_RSHIFT]
 		#print (events)
+		axes = {"0": {"-1": "left", "1": "right", "0": "stop"}, "1": {"-1": "up", "1": "down", "0": "stop"}}
 		for event in events:
-			if event.type == pygame.QUIT:
+			if event.type == pygame.JOYBUTTONDOWN:
+				if event.button == 2 or event.button == 3:
+					self.sprinting = True
+				else:
+					if not self.jumping and self.speed["down"] == 0:
+						self.speed["up"] = 4
+						self.jumping = True
+						self.space_pressed = True
+						self.jump()
+			elif event.type == pygame.JOYBUTTONUP:
+				key = event.button
+				if key == 2 or key == 3:
+					self.sprinting = False
+				else:
+					self.space_pressed = False
+			elif event.type == pygame.JOYAXISMOTION or event.type == pygame.JOYHATMOTION:
+				if event.type == pygame.JOYHATMOTION:
+					axis = str(event.hat)
+					value = str(int(event.value[0]))
+				else:
+					axis = str(event.axis)
+					value = str(int(event.value))
+				if int(axis) > 1:
+					continue
+				if value not in axes[axis]:
+					direction = ""
+				direction = axes[axis][value]
+				if direction == "left":
+					self.move_left = True
+				elif direction == "stop":
+					self.move_left = False
+					self.move_right = False
+				elif direction == "right":
+					self.move_right = True
+			elif event.type == pygame.QUIT:
 				sys.exit(0)
 			elif event.type == pygame.KEYDOWN:
 				key = event.key
@@ -144,8 +187,8 @@ class Player(pygame.sprite.Sprite):
 					self.space_pressed = False
 		
 		#if (pressed[pygame.K_LSHIFT] or pressed[pygame.K_RSHIFT]) and (not self.jumping and not self.falling):
-		if pressed[pygame.K_LSHIFT] or pressed[pygame.K_RSHIFT]:
 			print ("shift")
+		if pressed[pygame.K_LSHIFT] or pressed[pygame.K_RSHIFT] or self.sprinting:
 			self.sprinting = True
 			speed_max = self.sprint_max
 		if self.jumping or self.falling:
@@ -165,6 +208,7 @@ class Player(pygame.sprite.Sprite):
 			## TODO: ducken?
 			pass"""
 		if pressed[pygame.K_LEFT]:
+		if pressed[pygame.K_LEFT] or self.move_left:
 			if self.colliding["left"]:
 				self.speed["left"] = 0
 				return
@@ -175,7 +219,7 @@ class Player(pygame.sprite.Sprite):
 						self.speed["right"] -= 1
 				self.frame = 0
 			self.move("left")
-		elif pressed[pygame.K_RIGHT]:
+		elif pressed[pygame.K_RIGHT] or self.move_right:
 			if self.colliding["right"]:
 				self.speed["right"] = 0
 				return
