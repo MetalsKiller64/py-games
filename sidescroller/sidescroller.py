@@ -53,7 +53,7 @@ class Player(pygame.sprite.Sprite):
 		self.falling = True
 		self.jumping = False
 		self.jump_frames = 0
-		self.space_pressed = False
+		self.jump_button_pressed = False
 		self.jump_frame_factor = 0
 		self.jump_frame_factor_max = 10
 		self.speed = {"left": 0, "right": 0, "down": 0, "up": 0}
@@ -112,25 +112,25 @@ class Player(pygame.sprite.Sprite):
 		pressed = pygame.key.get_pressed()
 		events = pygame.event.get()
 		speed_max = self.speed_max
-		self.sprinting = False
 		shift_keys = [pygame.K_LSHIFT, pygame.K_RSHIFT]
 		axes = {"0": {"-1": "left", "1": "right", "0": "stop"}, "1": {"-1": "up", "1": "down", "0": "stop"}}
+		jump_buttons = [0,1]
 		for event in events:
 			if event.type == pygame.JOYBUTTONDOWN:
 				if event.button == 2 or event.button == 3:
 					self.sprinting = True
-				else:
+				elif event.button in jump_buttons:
 					if not self.jumping and self.speed["down"] == 0:
 						self.speed["up"] = 4
 						self.jumping = True
-						self.space_pressed = True
+						self.jump_button_pressed = True
 						self.jump()
 			elif event.type == pygame.JOYBUTTONUP:
 				key = event.button
 				if key == 2 or key == 3:
 					self.sprinting = False
-				else:
-					self.space_pressed = False
+				elif button in jump_buttons:
+					self.jump_button_pressed = False
 			elif event.type == pygame.JOYAXISMOTION or event.type == pygame.JOYHATMOTION:
 				if event.type == pygame.JOYHATMOTION:
 					axis = str(event.hat)
@@ -160,12 +160,10 @@ class Player(pygame.sprite.Sprite):
 					if not self.jumping and self.speed["down"] == 0:
 						self.speed["up"] = 4
 						self.jumping = True
-						self.space_pressed = True
+						self.jump_button_pressed = True
 						self.jump()
 			elif event.type == pygame.KEYUP:
 				key = event.key
-				if key == pygame.K_SPACE:
-					self.space_pressed = False
 		
 		if pressed[pygame.K_LSHIFT] or pressed[pygame.K_RSHIFT] or self.sprinting:
 			self.sprinting = True
@@ -204,8 +202,7 @@ class Player(pygame.sprite.Sprite):
 		self.last_floor = None
 		frame_max = 3
 		self.jump_frames += 1
-		pressed = pygame.key.get_pressed()
-		if self.space_pressed and pressed[pygame.K_SPACE]:
+		if self.jump_button_pressed:
 			if self.jump_frame_factor < self.jump_frame_factor_max:
 				self.jump_frame_factor += 1
 		frame_max *= self.jump_frame_factor
