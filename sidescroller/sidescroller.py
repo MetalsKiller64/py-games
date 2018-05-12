@@ -64,7 +64,7 @@ class Player(pygame.sprite.Sprite):
 		self.sprinting = False
 		self.colliding = {"left": False, "right": False, "top": False, "bottom": False}
 		self.frame = 0
-		self.speed_rate = 5
+		self.speed_rate = 10
 		self.jump_cycle = 0
 		self.last_floor = None
 		self.lives = 2
@@ -171,7 +171,7 @@ class Player(pygame.sprite.Sprite):
 		if pressed[pygame.K_LSHIFT] or pressed[pygame.K_RSHIFT] or self.sprinting:
 			self.sprinting = True
 			speed_max = self.sprint_max
-		if self.jumping or self.falling:
+		if self.jumping:
 			speed_max = self.air_speed_max
 
 		if pressed[pygame.K_LEFT] or self.move_left:
@@ -184,7 +184,6 @@ class Player(pygame.sprite.Sprite):
 					if self.speed["right"] > 0:
 						self.speed["right"] -= 1
 				self.frame = 0
-			print (self.speed["left"])
 			self.move("left")
 		elif pressed[pygame.K_RIGHT] or self.move_right:
 			if self.colliding["right"]:
