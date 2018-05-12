@@ -167,7 +167,6 @@ class Player(pygame.sprite.Sprite):
 				if key == pygame.K_SPACE:
 					self.space_pressed = False
 		
-		#if (pressed[pygame.K_LSHIFT] or pressed[pygame.K_RSHIFT]) and (not self.jumping and not self.falling):
 		if pressed[pygame.K_LSHIFT] or pressed[pygame.K_RSHIFT] or self.sprinting:
 			self.sprinting = True
 			speed_max = self.sprint_max
@@ -198,7 +197,6 @@ class Player(pygame.sprite.Sprite):
 			self.move("right")
 
 	def jump(self):
-		print ("jumping")
 		self.floating = False
 		#self.floater = None
 		self.jumping = True
@@ -216,12 +214,10 @@ class Player(pygame.sprite.Sprite):
 		if self.jump_cycle == jcm:
 			self.speed["up"] -= 1
 			self.jump_cycle = 0
-			print ("slow down")
 		else:
 			self.jump_cycle += 1
 		
 		if self.speed["up"] <= 0:
-			print ("jump end")
 			self.speed["up"] = 0
 			self.jump_cycle = 0
 			self.jumping = False
@@ -242,7 +238,6 @@ class Player(pygame.sprite.Sprite):
 	def float(self):
 		direction = self.float_direction
 		speed = self.floating_speed
-		print ("float: %s %d" % (direction, speed))
 		if direction == "+":
 			self.move("right", speed)
 		elif direction == "-":
@@ -566,7 +561,6 @@ def load_level(level_file):
 		float_points = obj[5]
 		reverse_points = []
 		reverse_points += (x for x in reversed(float_points))
-		#print (obj)
 		try:
 			color_rgb = obj[6]
 			color = (color_rgb[0], color_rgb[1], color_rgb[2])
@@ -613,8 +607,6 @@ exit, obstacles, objects, spawn, level_width, level_height, floaters = load_leve
 spawn_x = spawn[0]
 spawn_y = spawn[1]
 p = Player(spawn_x, spawn_y)
-print (p.level_pos_x)
-print (p.level_pos_y)
 #hitbox = sprite_object(spawn_x-1, spawn_y-1, 10,24, (0, 0, 0), True)
 hitbox = hitbox_object(spawn_x-1, spawn_y-1, 9,22, (255, 255, 255))
 dpass = 0
