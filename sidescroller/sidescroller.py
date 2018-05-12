@@ -32,8 +32,6 @@ pygame.joystick.init()
 for x in range(pygame.joystick.get_count()):
 	j = pygame.joystick.Joystick(x)
 	j.init()
-	for b in range(j.get_numbuttons()):
-		print (j.get_button(b))
 
 clock = pygame.time.Clock()
 
