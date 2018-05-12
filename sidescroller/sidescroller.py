@@ -63,8 +63,10 @@ class Player(pygame.sprite.Sprite):
 		self.air_speed_max = 2
 		self.sprinting = False
 		self.colliding = {"left": False, "right": False, "top": False, "bottom": False}
-		self.frame = 0
-		self.speed_rate = 10
+		self.accel_frame = 0
+		self.accel_rate = 10
+		self.decel_rate = 5
+		self.decel_frame = 0
 		self.jump_cycle = 0
 		self.last_floor = None
 		self.lives = 2
@@ -95,26 +97,29 @@ class Player(pygame.sprite.Sprite):
 			self.falling = True
 			self.floating = False
 		
-		pressed = pygame.key.get_pressed()
+		self.decel_frame += 1
 		if not self.sprinting:
 			for direction in self.speed:
 				if direction == "left" or direction == "right" and not self.jumping and not self.falling:
-					if self.speed[direction] > 3:
-						self.speed[direction] -= 1
-		if not self.move_left and not self.move_right and not pressed[pygame.K_LEFT] and not pressed[pygame.K_RIGHT] and self.frame < self.speed_rate and not self.jumping and not self.falling:
+					if self.decel_frame >= self.decel_rate:
+						if self.speed[direction] > 3:
+							self.speed[direction] -= 1
+		if not self.move_left and not self.move_right:
 			for direction in self.speed:
 				if direction == "left" or direction == "right":
 					if self.speed[direction] > 0:
-						self.speed[direction] -= 1
-		
+						if self.decel_frame >= self.decel_rate:
+							self.speed[direction] -= 1
+						self.move(direction, self.speed[direction])
+		if self.decel_frame > self.decel_rate:
+			self.decel_frame = 0
 	
 	def handle_key_event(self):
-		pressed = pygame.key.get_pressed()
 		events = pygame.event.get()
 		speed_max = self.speed_max
 		shift_keys = [pygame.K_LSHIFT, pygame.K_RSHIFT]
-		axes = {"0": {"-1": "left", "1": "right", "0": "stop"}, "1": {"-1": "up", "1": "down", "0": "stop"}}
 		jump_buttons = [0,1]
+		axes = {"0": {"-1": "left", "1": "right", "0": "stop"}, "1": {"-1": "up", "1": "down", "0": ""}}
 		for event in events:
 			if event.type == pygame.JOYBUTTONDOWN:
 				if event.button == 2 or event.button == 3:
@@ -126,8 +131,8 @@ class Player(pygame.sprite.Sprite):
 						self.jump_button_pressed = True
 						self.jump()
 			elif event.type == pygame.JOYBUTTONUP:
-				key = event.button
-				if key == 2 or key == 3:
+				button = event.button
+				if button == 2 or button == 3:
 					self.sprinting = False
 				elif button in jump_buttons:
 					self.jump_button_pressed = False
@@ -162,38 +167,49 @@ class Player(pygame.sprite.Sprite):
 						self.jumping = True
 						self.jump_button_pressed = True
 						self.jump()
+				elif key == pygame.K_LEFT:
+					self.move_left = True
+				elif key == pygame.K_RIGHT:
+					self.move_right = True
 			elif event.type == pygame.KEYUP:
 				key = event.key
+				if key in shift_keys:
+					self.sprinting = False
+				elif key == pygame.K_SPACE:
+					self.jump_button_pressed = False
+				elif key == pygame.K_LEFT:
+					self.move_left = False
+				elif key == pygame.K_RIGHT:
+					self.move_right = False
 		
-		if pressed[pygame.K_LSHIFT] or pressed[pygame.K_RSHIFT] or self.sprinting:
-			self.sprinting = True
+		if self.sprinting:
 			speed_max = self.sprint_max
 		if self.jumping:
 			speed_max = self.air_speed_max
 
-		if pressed[pygame.K_LEFT] or self.move_left:
+		if self.move_left:
 			if self.colliding["left"]:
 				self.speed["left"] = 0
 				return
-			if self.frame >= self.speed_rate:
+			if self.accel_frame >= self.accel_rate:
 				if self.speed["left"] < speed_max:
 					self.speed["left"] += 1
 					if self.speed["right"] > 0:
 						self.speed["right"] -= 1
-				self.frame = 0
+				self.accel_frame = 0
 			self.move("left")
-		elif pressed[pygame.K_RIGHT] or self.move_right:
+		elif self.move_right:
 			if self.colliding["right"]:
 				self.speed["right"] = 0
 				return
-			if self.frame >= self.speed_rate:
+			if self.accel_frame >= self.accel_rate:
 				if self.speed["right"] < speed_max:
 					self.speed["right"] += 1
 					if self.speed["left"] > 0:
 						self.speed["left"] -= 1
-				self.frame = 0
+				self.accel_frame = 0
 			self.move("right")
-
+ 
 	def jump(self):
 		self.floating = False
 		#self.floater = None
@@ -631,12 +647,6 @@ while not done:
 	if draw_hitbox:
 		hitbox.draw(screen)
 	p.draw(screen)
-	if p.frame >= p.speed_rate:
-		p.frame = 0
-	else:
-		p.frame += 1
-	if pygame.event.peek([pygame.KEYUP, pygame.KEYDOWN]):
-		p.handle_key_event()
 	
 	p.colliding["right"] = False
 	p.colliding["left"] = False
@@ -653,6 +663,13 @@ while not done:
 	
 	p.handle_key_event()
 	p.handle_phys()
+	
+	if p.accel_frame > p.accel_rate:
+		p.accel_frame = 0
+	else:
+		p.accel_frame += 1
+	if pygame.event.peek([pygame.KEYUP, pygame.KEYDOWN]):
+		p.handle_key_event()
 	
 	for name in floaters:
 		f = floaters[name]
