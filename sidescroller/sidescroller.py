@@ -746,7 +746,7 @@ while not done:
 				sprites.empty()
 				all_sprite_objects.empty()
 				death_zones.empty()
-				level_name = return_values
+				level_name = return_values+".json"
 				exit, obstacles, objects, spawn, level_width, level_height, floaters = load_level(level_name)
 				spawn_x = spawn[0]
 				spawn_y = spawn[1]
