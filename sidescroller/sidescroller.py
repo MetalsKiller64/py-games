@@ -1,13 +1,11 @@
-import pygame, random, time, json, sys, argparse, math
-
-level_name = "level.json"
+import pygame, random, time, json, sys, argparse, math, subprocess
 
 def color_tuple(arg_string):
 	r, g, b = (int(x) for x in arg_string.split(","))
 	return (r,g,b)
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-l", "--level", dest="level_name", default="level.json", help="Pfad zur Level-Datei")
+parser.add_argument("-l", "--level", dest="level_name", default=None, help="Pfad zur Level-Datei")
 parser.add_argument("-g", "--geometry", dest="screen_geometry", default="800x600", help="Bildschirmgröße (Breite, Höhe)")
 parser.add_argument("-f", "--frame-rate", dest="frame_rate", action="store", type=int, default=60, help="FPS")
 parser.add_argument("-dh", "--draw-hitbox", dest="draw_hitbox", action="store_true", default=False, help="Spieler Hitbox anzeigen")
@@ -15,8 +13,9 @@ parser.add_argument("-bg", "--background-color", dest="bg_color", default=(184, 
 args = parser.parse_args()
 
 level_name = args.level_name
-if not level_name.endswith(".json"):
-	level_name+= ".json"
+if level_name != None:
+	if not level_name.endswith(".json"):
+		level_name+= ".json"
 geometry = args.screen_geometry
 frame_rate = args.frame_rate
 draw_hitbox = args.draw_hitbox
@@ -159,6 +158,9 @@ class Player(pygame.sprite.Sprite):
 				key = event.key
 				if key in shift_keys:
 					self.sprinting = True
+				elif key == pygame.K_ESCAPE:
+					global menu_event
+					menu_event = True
 				elif key == pygame.K_SPACE:
 					if not self.jumping and self.speed["down"] == 0:
 						self.speed["up"] = 4
@@ -608,23 +610,150 @@ def load_level(level_file):
 		death_zones.add(sprite);
 	return exit, obstacles, objects, spawn, level_width, level_height, floaters
 
+def list_levels():
+	json_list = []
+	file_list = subprocess.run(["ls"], stdout=subprocess.PIPE, universal_newlines=True).stdout.strip().split("\n")
+	for item in file_list:
+		if item.endswith(".json"):
+			json_list.append({"text": item.rsplit(".json")[0], "sub_items": [], "action": "load_level"})
+	return json_list
+
+def show_menu(menu_items, initial = False):
+	done = False
+	font = pygame.font.SysFont("comicsansms", 60)
+	selected_item = 1
+	max_visible_items = screen.get_height() // 60
+	visible_menu_items = []
+	for i in range(max_visible_items):
+		if i < len(menu_items):
+			visible_menu_items.append(menu_items[i])
+	scroll_up = 2
+	scroll_down = max_visible_items - 2
+	visible_selected = 0
+	while not done:
+		screen.fill((255,255,255))
+		events = pygame.event.get()
+		item_position = 10
+		for item in visible_menu_items:
+			item_index = visible_menu_items.index(item)
+			if visible_selected == item_index:
+				text = font.render(item["text"], True, (100,100,100))
+			else:
+				text = font.render(item["text"], True, (0,0,0))
+			screen.blit(text, ((screen.get_width() - text.get_width()) // 2, item_position))
+			item_position += 60
+		pygame.display.flip()
+		for event in events:
+			if event.type == pygame.KEYDOWN:
+				key = event.key
+				if key == pygame.K_ESCAPE:
+					if not initial:
+						return [False, None, []]
+				elif key == pygame.K_DOWN:
+					selected_item += 1
+					if visible_selected < scroll_down or selected_item == len(menu_items):
+						visible_selected += 1
+					else:
+						if len(menu_items) > max_visible_items:
+							visible_menu_items.pop(0)
+							try:
+								visible_menu_items.append(menu_items[selected_item])
+							except IndexError:
+								visible_menu_items = []
+								for i in range(max_visible_items):
+									if i < len(menu_items):
+										visible_menu_items.append(menu_items[i])
+					if selected_item > len(menu_items):
+						selected_item = 1
+						visible_selected = 0
+						if len(menu_items) > max_visible_items:
+							visible_menu_items = []
+							for i in range(max_visible_items):
+								if i < len(menu_items):
+									visible_menu_items.append(menu_items[i])
+				elif key == pygame.K_UP:
+					selected_item -= 1
+					if len(menu_items) > max_visible_items:
+						if visible_selected > scroll_up or selected_item <= 2:
+							visible_selected -= 1
+						else:
+							visible_menu_items.pop()
+							try:
+								visible_menu_items.insert(0, menu_items[selected_item - 3])
+							except IndexError:
+								visible_menu_items = []
+								for i in reversed(range(max_visible_items)):
+									if i <= len(menu_items):
+										visible_menu_items.append(menu_items[(len(menu_items) - 1) - i])
+					else:
+						visible_selected -= 1
+					if selected_item < 1:
+						selected_item = len(menu_items)
+						if len(menu_items) > max_visible_items:
+							visible_selected = max_visible_items - 1
+							visible_menu_items = []
+							for i in reversed(range(max_visible_items)):
+								if i <= len(menu_items):
+									visible_menu_items.append(menu_items[(len(menu_items) - 1) - i])
+					if visible_selected < 0:
+						if len(menu_items) >max_visible_items:
+							visible_selected = max_visible_items
+						else:
+							visible_selected = selected_item - 1
+				elif key == pygame.K_RETURN:
+					item = menu_items[visible_selected]
+					action = item["action"]
+					if len(item["sub_items"]) > 0:
+						break_menu, action, return_values = show_menu(item["sub_items"])
+						if break_menu:
+							return [True, action, return_values]
+					elif action == "load_level":
+						return [True, "load_level", item["text"]]
+					elif action == "exit":
+						sys.exit(0)
+
 ending = False
 gameover = False
+
+menu_items = [{"text": "Level Select", "sub_items": [], "action": None},
+		{"text": "Exit", "sub_items": [], "action": "exit"}]
+menu_items[0]["sub_items"] = list_levels()
 font = pygame.font.SysFont("comicsansms", 30)
 sprites = pygame.sprite.Group()
 all_sprite_objects = pygame.sprite.Group()
 death_zones = pygame.sprite.Group()
-exit, obstacles, objects, spawn, level_width, level_height, floaters = load_level(level_name)
-spawn_x = spawn[0]
-spawn_y = spawn[1]
-p = Player(spawn_x, spawn_y)
-#hitbox = sprite_object(spawn_x-1, spawn_y-1, 10,24, (0, 0, 0), True)
-hitbox = hitbox_object(spawn_x-1, spawn_y-1, 9,22, (255, 255, 255))
-dpass = 0
+if level_name != None:
+	exit, obstacles, objects, spawn, level_width, level_height, floaters = load_level(level_name)
+	spawn_x = spawn[0]
+	spawn_y = spawn[1]
+	p = Player(spawn_x, spawn_y)
+	#hitbox = sprite_object(spawn_x-1, spawn_y-1, 10,24, (0, 0, 0), True)
+	hitbox = hitbox_object(spawn_x-1, spawn_y-1, 9,22, (255, 255, 255))
+	initial = False
+else:
+	initial = True
 
+dpass = 0
 done = False
+menu_event = False
 while not done:
 	clock.tick(frame_rate)
+	if initial or menu_event:
+		menu_event = False
+		action_trigger, action, return_values = show_menu(menu_items, initial)
+		if action_trigger:
+			if action == "load_level":
+				sprites.empty()
+				all_sprite_objects.empty()
+				death_zones.empty()
+				level_name = return_values
+				exit, obstacles, objects, spawn, level_width, level_height, floaters = load_level(level_name)
+				spawn_x = spawn[0]
+				spawn_y = spawn[1]
+				p = Player(spawn_x, spawn_y)
+				#hitbox = sprite_object(spawn_x-1, spawn_y-1, 10,24, (0, 0, 0), True)
+				hitbox = hitbox_object(spawn_x-1, spawn_y-1, 9,22, (255, 255, 255))
+		initial = False
 	if p.dead:
 		if dpass < 30:
 			dpass += 1
