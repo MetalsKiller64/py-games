@@ -512,12 +512,12 @@ def check_collision(a, b):
 def show_end():
 	screen.fill((0,0,0))
 	text = font.render("Ende", True, (0, 128, 0))
-	screen.blit(text, (200 - text.get_width() // 2, 150 - text.get_height() // 2))
+	screen.blit(text, (screen.get_width() // 2 - text.get_width(), screen.get_height() // 2 - text.get_height()))
 
 def show_gameover():
 	screen.fill((0,0,0))
 	text = font.render("Game Over", True, (128, 0, 0))
-	screen.blit(text, (200 - text.get_width() // 2, 150 - text.get_height() // 2))
+	screen.blit(text, (screen.get_width() // 2 - text.get_width(), screen.get_height() // 2 - text.get_height()))
 
 def show_live_count():
 	text = font.render("Leben: "+str(p.lives), True, (0, 128, 0))
