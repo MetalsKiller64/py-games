@@ -512,11 +512,21 @@ def check_collision(a, b):
 
 
 def show_end():
+	for event in pygame.event.get():
+		if event.type == pygame.KEYDOWN:
+			if event.key == pygame.K_ESCAPE:
+				global menu_event
+				menu_event = True
 	screen.fill((0,0,0))
 	text = font.render("Ende", True, (0, 128, 0))
 	screen.blit(text, (screen.get_width() // 2 - text.get_width(), screen.get_height() // 2 - text.get_height()))
 
 def show_gameover():
+	for event in pygame.event.get():
+		if event.type == pygame.KEYDOWN:
+			if event.key == pygame.K_ESCAPE:
+				global menu_event
+				menu_event = True
 	screen.fill((0,0,0))
 	text = font.render("Game Over", True, (128, 0, 0))
 	screen.blit(text, (screen.get_width() // 2 - text.get_width(), screen.get_height() // 2 - text.get_height()))
@@ -748,6 +758,8 @@ while not done:
 				death_zones.empty()
 				level_name = return_values+".json"
 				exit, obstacles, objects, spawn, level_width, level_height, floaters = load_level(level_name)
+				ending = False
+				gameover = False
 				spawn_x = spawn[0]
 				spawn_y = spawn[1]
 				p = Player(spawn_x, spawn_y)
