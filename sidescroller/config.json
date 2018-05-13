@@ -1,0 +1,38 @@
+{
+    "controls": {
+        "gamepad": [
+            {
+                "Jump": 0,
+                "Run": 2,
+                "Up": [
+                    1,
+                    -1
+                ],
+                "Down": [
+                    1,
+                    1
+                ],
+                "Left": [
+                    0,
+                    -1
+                ],
+                "Right": [
+                    0,
+                    1
+                ],
+                "Start": 7,
+                "Pause": 6
+            }
+        ],
+        "keyboard": {
+            "Jump": 32,
+            "Run": 304,
+            "Up": 273,
+            "Down": 274,
+            "Left": 276,
+            "Right": 275,
+            "Start": 13,
+            "Pause": 27
+        }
+    }
+}

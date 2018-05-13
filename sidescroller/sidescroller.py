@@ -10,6 +10,7 @@ parser.add_argument("-g", "--geometry", dest="screen_geometry", default="800x600
 parser.add_argument("-f", "--frame-rate", dest="frame_rate", action="store", type=int, default=60, help="FPS")
 parser.add_argument("-dh", "--draw-hitbox", dest="draw_hitbox", action="store_true", default=False, help="Spieler Hitbox anzeigen")
 parser.add_argument("-bg", "--background-color", dest="bg_color", default=(184, 207, 245), type=color_tuple, help="Hintergrundfarbe (r,g,b)")
+parser.add_argument("-c", "--config", dest="config_file", action="store", default=None, help="Konfigurationsdatei angeben")
 args = parser.parse_args()
 
 level_name = args.level_name
@@ -27,6 +28,14 @@ screen_width, screen_height = (int(x) for x in geometry.split("x"))
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.init()
 pygame.joystick.init()
+
+config_file = "config.json"
+if args.config_file:
+	config_file = args.config_file
+f = open(config_file)
+config = json.load(f)
+f.close()
+controls = config["controls"]
 
 for x in range(pygame.joystick.get_count()):
 	j = pygame.joystick.Joystick(x)
@@ -113,73 +122,77 @@ class Player(pygame.sprite.Sprite):
 	
 	def handle_key_event(self):
 		events = pygame.event.get()
+		global menu_event
 		speed_max = self.speed_max
 		shift_keys = [pygame.K_LSHIFT, pygame.K_RSHIFT]
 		jump_buttons = [0,1]
 		axes = {"0": {"-1": "left", "1": "right", "0": "stop"}, "1": {"-1": "up", "1": "down", "0": ""}}
+		player_controls = {"Jump": [], "Run": [], "Up": [], "Down": [], "Left": [], "Right": [], "Start": [], "Pause": []}
+		for g in controls["gamepad"]:
+			for key in player_controls:
+				player_controls[key].append(g[key])
+		for key in player_controls:
+			player_controls[key].append(controls["keyboard"][key])
 		for event in events:
 			if event.type == pygame.JOYBUTTONDOWN:
-				if event.button == 2 or event.button == 3:
+				button = event.button
+				if button in player_controls["Run"]:
 					self.sprinting = True
-				elif event.button in jump_buttons:
+				elif button in player_controls["Jump"]:
 					if not self.jumping and self.speed["down"] == 0:
 						self.speed["up"] = 4
 						self.jumping = True
 						self.jump_button_pressed = True
 						self.jump()
+				elif button in player_controls["Pause"] or button in player_controls["Start"]:
+					menu_event = True
 			elif event.type == pygame.JOYBUTTONUP:
 				button = event.button
-				if button == 2 or button == 3:
+				if button in player_controls["Run"]:
 					self.sprinting = False
-				elif button in jump_buttons:
+				elif button in player_controls["Jump"]:
 					self.jump_button_pressed = False
 			elif event.type == pygame.JOYAXISMOTION or event.type == pygame.JOYHATMOTION:
 				if event.type == pygame.JOYHATMOTION:
-					axis = str(event.hat)
-					value = str(int(event.value[0]))
+					axis = event.hat
+					value = int(event.value[0])
 				else:
-					axis = str(event.axis)
-					value = str(int(event.value))
-				if int(axis) > 1:
-					continue
-				if value not in axes[axis]:
-					direction = ""
-				direction = axes[axis][value]
-				if direction == "left":
+					axis = event.axis
+					value = int(event.value)
+				if [axis,value] in player_controls["Left"]:
 					self.move_left = True
-				elif direction == "stop":
+				elif [axis,value] in player_controls["Right"]:
+					self.move_right = True
+				elif not [axis,value] in player_controls["Left"] and not [axis,value] in player_controls["Right"]:
 					self.move_left = False
 					self.move_right = False
-				elif direction == "right":
-					self.move_right = True
 			elif event.type == pygame.QUIT:
 				sys.exit(0)
 			elif event.type == pygame.KEYDOWN:
 				key = event.key
-				if key in shift_keys:
+				if key in player_controls["Run"]:
 					self.sprinting = True
-				elif key == pygame.K_ESCAPE:
-					global menu_event
+				elif key in player_controls["Pause"] or key in player_controls["Start"]:
 					menu_event = True
-				elif key == pygame.K_SPACE:
+				elif key in player_controls["Jump"]:
 					if not self.jumping and self.speed["down"] == 0:
 						self.speed["up"] = 4
 						self.jumping = True
 						self.jump_button_pressed = True
 						self.jump()
-				elif key == pygame.K_LEFT:
+				elif key in player_controls["Left"]:
 					self.move_left = True
-				elif key == pygame.K_RIGHT:
+				elif key in player_controls["Right"]:
 					self.move_right = True
 			elif event.type == pygame.KEYUP:
 				key = event.key
-				if key in shift_keys:
+				if key in player_controls["Run"]:
 					self.sprinting = False
-				elif key == pygame.K_SPACE:
+				elif key in player_controls["Jump"]:
 					self.jump_button_pressed = False
-				elif key == pygame.K_LEFT:
+				elif key in player_controls["Left"]:
 					self.move_left = False
-				elif key == pygame.K_RIGHT:
+				elif key in player_controls["Right"]:
 					self.move_right = False
 		
 		if self.sprinting:
@@ -620,13 +633,68 @@ def load_level(level_file):
 		death_zones.add(sprite);
 	return exit, obstacles, objects, spawn, level_width, level_height, floaters
 
+def save_config():
+	f = open(config_file, "w")
+	json.dump(config, f, indent=4)
+	f.close()
+
 def list_levels():
 	json_list = []
 	file_list = subprocess.run(["ls"], stdout=subprocess.PIPE, universal_newlines=True).stdout.strip().split("\n")
 	for item in file_list:
 		if item.endswith(".json"):
-			json_list.append({"text": item.rsplit(".json")[0], "sub_items": [], "action": "load_level"})
+			if item == "config.json":
+				continue
+			json_list.append({"text": item.rsplit(".json")[0], "expanded_text": "", "sub_items": [], "action": "load_level", "align": "center"})
 	return json_list
+
+def check_button_usage(button_value, keyboard = False, pad_number = None):
+	if not keyboard:
+		pad = controls["gamepad"][pad_number]
+		for key in pad:
+			if pad[key] == button_value:
+				controls["gamepad"][pad_number][key] = None
+	else:
+		keyboard = controls["keyboard"]
+		for key in keyboard:
+			if keyboard[key] == button_value:
+				controls["keyboard"][key] = None
+
+def set_button(name):
+	while True:
+		for event in pygame.event.get():
+			if event.type == pygame.KEYDOWN:
+				key = event.key
+				check_button_usage(key, True)
+				controls["keyboard"][name] = key
+				return "KEY_"+pygame.key.name(key)
+			elif event.type == pygame.JOYBUTTONDOWN:
+				button = event.button
+				pad = event.joy
+				check_button_usage(button, False, pad)
+				try:
+					c = controls["gamepad"][pad]
+					controls["gamepad"][pad][name] = button
+				except IndexError:
+					new_buttons = {"Jump": None, "Run": None, "Up": None, "Down": None, "Left": None, "Right": None}
+					new_buttons[name] = button
+					controls["gamepad"].append(new_buttons)
+				return "JOY"+str(pad)+"_BTN"+str(button)
+			elif event.type == pygame.JOYAXISMOTION:
+				if name == "Jump" or name == "Run":
+					continue
+				axis = event.axis
+				pad = event.joy
+				value = int(event.value)
+				check_button_usage([axis, value], False, pad)
+				if pad not in controls["gamepad"]:
+					new_buttons = {"Jump": None, "Run": None, "Up": None, "Down": None, "Left": None, "Right": None}
+					new_buttons[name] = [axis, value]
+				else:
+					controls["gamepad"][pad][name] = [axis, value]
+				return "JOY"+str(pad)+"_AXIS"+str(axis)+"_"+str(value)
+			elif event.type == pygame.JOYHATMOTION:
+				pass
 
 def show_menu(menu_items, initial = False):
 	done = False
@@ -646,20 +714,41 @@ def show_menu(menu_items, initial = False):
 		item_position = 10
 		for item in visible_menu_items:
 			item_index = visible_menu_items.index(item)
+			visible_text = item["text"]+item["expanded_text"]
 			if visible_selected == item_index:
-				text = font.render(item["text"], True, (100,100,100))
+				text = font.render(visible_text, True, (100,100,100))
 			else:
-				text = font.render(item["text"], True, (0,0,0))
-			screen.blit(text, ((screen.get_width() - text.get_width()) // 2, item_position))
+				text = font.render(visible_text, True, (0,0,0))
+			if item["align"] == "center":
+				screen.blit(text, ((screen.get_width() - text.get_width()) // 2, item_position))
+			elif item["align"] == "left":
+				screen.blit(text, ((screen.get_width() // 2) - 200, item_position))
 			item_position += 60
 		pygame.display.flip()
+		menu_controls = {"Up": [], "Down": [], "Start": [], "Pause": []}
+		for g in controls["gamepad"]:
+			for key in menu_controls:
+				menu_controls[key].append(g[key])
+		for key in menu_controls:
+			menu_controls[key].append(controls["keyboard"][key])
 		for event in events:
-			if event.type == pygame.KEYDOWN:
-				key = event.key
-				if key == pygame.K_ESCAPE:
+			event_types = [pygame.KEYDOWN, pygame.JOYBUTTONDOWN, pygame.JOYAXISMOTION]
+			if event.type in event_types:
+				key = None
+				button = None
+				axis = None
+				value = None
+				if event.type == pygame.KEYDOWN:
+					key = event.key
+				elif event.type == pygame.JOYBUTTONDOWN:
+					button = event.button
+				else:
+					axis = event.axis
+					value = int(event.value)
+				if key in menu_controls["Pause"] or button in menu_controls["Pause"]:
 					if not initial:
 						return [False, None, []]
-				elif key == pygame.K_DOWN:
+				elif key in menu_controls["Down"] or [axis,value] in menu_controls["Down"]:
 					selected_item += 1
 					if visible_selected < scroll_down or selected_item == len(menu_items):
 						visible_selected += 1
@@ -681,7 +770,7 @@ def show_menu(menu_items, initial = False):
 							for i in range(max_visible_items):
 								if i < len(menu_items):
 									visible_menu_items.append(menu_items[i])
-				elif key == pygame.K_UP:
+				elif key in menu_controls["Up"] or [axis,value] in menu_controls["Up"]:
 					selected_item -= 1
 					if len(menu_items) > max_visible_items:
 						if visible_selected > scroll_up or selected_item <= 2:
@@ -706,11 +795,11 @@ def show_menu(menu_items, initial = False):
 								if i <= len(menu_items):
 									visible_menu_items.append(menu_items[(len(menu_items) - 1) - i])
 					if visible_selected < 0:
-						if len(menu_items) >max_visible_items:
+						if len(menu_items) > max_visible_items:
 							visible_selected = max_visible_items
 						else:
 							visible_selected = selected_item - 1
-				elif key == pygame.K_RETURN:
+				elif key in menu_controls["Start"] or button in menu_controls["Start"]:
 					item = menu_items[visible_selected]
 					action = item["action"]
 					if len(item["sub_items"]) > 0:
@@ -719,14 +808,61 @@ def show_menu(menu_items, initial = False):
 							return [True, action, return_values]
 					elif action == "load_level":
 						return [True, "load_level", item["text"]]
+					elif action == "set_button":
+						button_text = set_button(item["text"])
+						for i in menu_items:
+							if i["expanded_text"] == ": "+button_text:
+								i["expanded_text"] = ""
+						item["expanded_text"] = ": "+button_text
+					elif action == "save_config":
+						save_config()
 					elif action == "exit":
 						sys.exit(0)
 
 ending = False
 gameover = False
 
-menu_items = [{"text": "Level Select", "sub_items": [], "action": None},
-		{"text": "Exit", "sub_items": [], "action": "exit"}]
+gp = controls["gamepad"][0]
+gp_jump_text = ": JOY0_BTN"+str(gp["Jump"])
+gp_run_text = ": JOY0_BTN"+str(gp["Run"])
+gp_up_text = ": JOY0_AXIS"+str(gp["Up"][0])+"_"+str(gp["Up"][1])
+gp_down_text = ": JOY0_AXIS"+str(gp["Down"][0])+"_"+str(gp["Down"][1])
+gp_left_text = ": JOY0_AXIS"+str(gp["Left"][0])+"_"+str(gp["Left"][1])
+gp_right_text = ": JOY0_AXIS"+str(gp["Right"][0])+"_"+str(gp["Right"][1])
+gp_start_text = ": JOY0_BTN"+str(gp["Start"])
+gp_pause_text = ": JOY0_BTN"+str(gp["Pause"])
+kb = controls["keyboard"]
+kb_jump_text = ": KEY_"+pygame.key.name(kb["Jump"])
+kb_run_text = ": KEY_"+pygame.key.name(kb["Run"])
+kb_up_text = ": KEY_"+pygame.key.name(kb["Up"])
+kb_down_text = ": KEY_"+pygame.key.name(kb["Down"])
+kb_left_text = ": KEY_"+pygame.key.name(kb["Left"])
+kb_right_text = ": KEY_"+pygame.key.name(kb["Right"])
+kb_start_text = ": KEY_"+pygame.key.name(kb["Start"])
+kb_pause_text = ": KEY_"+pygame.key.name(kb["Pause"])
+gamepad_submenu = [{"text": "Jump", "expanded_text": gp_jump_text, "sub_items": [], "action": "set_button", "align": "left"},
+		{"text": "Run", "expanded_text": gp_run_text, "sub_items": [], "action": "set_button", "align": "left"},
+		{"text": "Left", "expanded_text": gp_left_text, "sub_items": [], "action": "set_button", "align": "left"},
+		{"text": "Right", "expanded_text": gp_right_text, "sub_items": [], "action": "set_button", "align": "left"},
+		{"text": "Up", "expanded_text": gp_up_text, "sub_items": [], "action": "set_button", "align": "left"},
+		{"text": "Down", "expanded_text": gp_down_text, "sub_items": [], "action": "set_button", "align": "left"},
+		{"text": "Start", "expanded_text": gp_start_text, "sub_items": [], "action": "set_button", "align": "left"},
+		{"text": "Pause", "expanded_text": gp_pause_text, "sub_items": [], "action": "set_button", "align": "left"}]
+keyboard_submenu = [{"text": "Jump", "expanded_text": kb_jump_text, "sub_items": [], "action": "set_button", "align": "left"},
+		{"text": "Run", "expanded_text": kb_run_text, "sub_items": [], "action": "set_button", "align": "left"},
+		{"text": "Left", "expanded_text": kb_left_text, "sub_items": [], "action": "set_button", "align": "left"},
+		{"text": "Right", "expanded_text": kb_right_text, "sub_items": [], "action": "set_button", "align": "left"},
+		{"text": "Up", "expanded_text": kb_up_text, "sub_items": [], "action": "set_button", "align": "left"},
+		{"text": "Down", "expanded_text": kb_down_text, "sub_items": [], "action": "set_button", "align": "left"},
+		{"text": "Start", "expanded_text": kb_start_text, "sub_items": [], "action": "set_button", "align": "left"},
+		{"text": "Pause", "expanded_text": kb_pause_text, "sub_items": [], "action": "set_button", "align": "left"}]
+
+control_menu = [{"text": "Gamepad", "expanded_text": "", "sub_items": gamepad_submenu, "action": None, "align": "center"},
+		{"text": "Keyboard", "expanded_text": "", "sub_items": keyboard_submenu, "action": None, "align": "center"},
+		{"text": "Save to config", "expanded_text": "", "sub_items": [], "action": "save_config", "align": "center"}]
+menu_items = [{"text": "Level Select", "expanded_text": "", "sub_items": [], "action": None, "align": "center"},
+		{"text": "Controls", "expanded_text": "", "sub_items": control_menu, "action": None, "align": "center"},
+		{"text": "Exit", "expanded_text": "", "sub_items": [], "action": "exit", "align": "center"}]
 menu_items[0]["sub_items"] = list_levels()
 font = pygame.font.SysFont("comicsansms", 30)
 sprites = pygame.sprite.Group()
