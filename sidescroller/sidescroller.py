@@ -79,8 +79,6 @@ class Player(pygame.sprite.Sprite):
 		self.level_pos_x = spawn_x
 		self.level_pos_y = spawn_y
 		self.floating = False
-		self.float_direction = ""
-		self.floating_speed = 0
 		self.jump_block = False
 		self.block_cycle = 0
 		self.exit_reached = False
@@ -96,8 +94,6 @@ class Player(pygame.sprite.Sprite):
 			self.jump()
 		elif self.falling:
 			self.fall()
-		elif self.floating:
-			self.float()
 		else:
 			self.last_floor = None
 			self.falling = True
@@ -110,7 +106,7 @@ class Player(pygame.sprite.Sprite):
 					if self.decel_frame >= self.decel_rate:
 						if self.speed[direction] > 3:
 							self.speed[direction] -= 1
-		if not self.move_left and not self.move_right:
+		if not self.move_left and not self.move_right and not self.floating:
 			for direction in self.speed:
 				if direction == "left" or direction == "right":
 					if self.speed[direction] > 0:
@@ -260,18 +256,6 @@ class Player(pygame.sprite.Sprite):
 		elif self.speed["down"] < self.fall_speed_max:
 			self.speed["down"] += 1
 		self.move("down")
-	
-	def float(self):
-		direction = self.float_direction
-		speed = self.floating_speed
-		if direction == "+":
-			self.move("right", speed)
-		elif direction == "-":
-			self.move("left", speed)
-		elif direction == "u":
-			self.move("up", speed)
-		elif direction == "d":
-			self.move("down", speed)
 
 	def check_ground(self):
 		self.last_floor = None
