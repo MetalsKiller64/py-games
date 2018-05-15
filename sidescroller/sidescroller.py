@@ -94,10 +94,9 @@ class Player(pygame.sprite.Sprite):
 			self.jump()
 		elif self.falling:
 			self.fall()
-		else:
+		elif not self.floating:
 			self.last_floor = None
 			self.falling = True
-			self.floating = False
 		
 		self.decel_frame += 1
 		if not self.sprinting:
@@ -106,12 +105,14 @@ class Player(pygame.sprite.Sprite):
 					if self.decel_frame >= self.decel_rate:
 						if self.speed[direction] > 3:
 							self.speed[direction] -= 1
-		if not self.move_left and not self.move_right and not self.floating:
+		if not self.move_left and not self.move_right:
 			for direction in self.speed:
 				if direction == "left" or direction == "right":
 					if self.speed[direction] > 0:
 						if self.decel_frame >= self.decel_rate:
 							self.speed[direction] -= 1
+						if self.floating:
+							self.speed[direction] = 0
 						self.move(direction, self.speed[direction])
 		if self.decel_frame > self.decel_rate:
 			self.decel_frame = 0
