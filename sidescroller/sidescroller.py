@@ -451,8 +451,9 @@ class hitbox_object(pygame.sprite.Sprite):
 
 
 class sprite_object(pygame.sprite.Sprite):
-	def __init__(self, x, y, width, height, color, floating = False):
+	def __init__(self, x, y, width, height, color, name, floating = False):
 		pygame.sprite.Sprite.__init__(self)
+		self.name = name
 		self.image = pygame.Surface([width, height])
 		self.image.fill((0,0,0))
 		self.image.fill(color, [1, 1, width-2, height-2])
@@ -480,6 +481,20 @@ class sprite_object(pygame.sprite.Sprite):
 			self.rect.x -= speed
 		elif direction == "right":
 			self.rect.x += speed
+		if self.floating:
+			fobj = floaters[self.name]
+			for point in fobj["points"]:
+				if direction == "up":
+					point["y"] -= speed
+				if direction == "down":
+					point["y"] += speed
+				if direction == "left":
+					point["x"] -= speed
+				if direction == "right":
+					point["x"] += speed
+			reverse_points = []
+			reverse_points += (x for x in reversed(fobj["points"]))
+			fobj["reverse_points"] = reverse_points
 
 
 def check_collision(a, b):
@@ -581,7 +596,7 @@ def load_level(level_file):
 	s = j["spawn"]
 	spawn = [int(s[0]), int(s[1])]
 	e = j["exit"]
-	exit = sprite_object(int(e[0]), int(e[1]), int(e[2]), int(e[3]), (138, 206, 255))
+	exit = sprite_object(int(e[0]), int(e[1]), int(e[2]), int(e[3]), (138, 206, 255), "exit")
 	all_sprite_objects.add(exit)
 	obstacles = {}
 	objects = {"exit": exit}
@@ -606,7 +621,7 @@ def load_level(level_file):
 			float_speed = int(obj[7])
 		except IndexError:
 			float_speed = 1
-		sprite = sprite_object(x, y, w, h, color, floating)
+		sprite = sprite_object(x, y, w, h, color, k, floating)
 		sprites.add(sprite)
 		all_sprite_objects.add(sprite)
 		obstacles[k] = sprite
@@ -628,7 +643,7 @@ def load_level(level_file):
 			color = (color_rgb[0], color_rgb[1], color_rgb[2])
 		except IndexError:
 			color = (255, 107, 0)
-		sprite = sprite_object(x, y, w, h, color)
+		sprite = sprite_object(x, y, w, h, color, key)
 		all_sprite_objects.add(sprite)
 		death_zones.add(sprite);
 	return exit, obstacles, objects, spawn, level_width, level_height, floaters
@@ -1017,23 +1032,31 @@ while not done:
 		if player_carrying:
 			x_diff = p.rect.x - math.ceil(player_x)
 			if x_diff > 0:
-				p.move("left", abs(x_diff))
-			else:
-				p.move("right", abs(x_diff))
+				p.move("left", speed)
+			elif x_diff < 0:
+				p.move("right", speed)
 			y_diff = p.rect.y - math.ceil(player_y)
 			if y_diff > 0:
-				p.move("up", abs(y_diff))
-			else:
-				p.move("down", abs(y_diff))
+				p.move("up", speed)
+			elif y_diff < 0:
+				p.move("down", speed)
 		
 		if obj.rect.x > dest_x:
-			obj.rect.x = math.ceil(x_pos) if math.ceil(x_pos) >= dest_x else dest_x
+			new_x = math.ceil(x_pos) if math.ceil(x_pos) >= dest_x else dest_x
+			x_diff = obj.rect.x - new_x
+			obj.rect.x -= x_diff
 		else:
-			obj.rect.x = math.ceil(x_pos) if math.ceil(x_pos) <= dest_x else dest_x
+			new_x = math.ceil(x_pos) if math.ceil(x_pos) <= dest_x else dest_x
+			x_diff = new_x - obj.rect.x
+			obj.rect.x += x_diff
 		if obj.rect.y > dest_y:
-			obj.rect.y = math.ceil(y_pos) if math.ceil(y_pos) >= dest_y else dest_y
+			new_y = math.ceil(y_pos) if math.ceil(y_pos) >= dest_y else dest_y
+			y_diff = obj.rect.y - new_y
+			obj.rect.y -= y_diff
 		else:
-			obj.rect.y = math.ceil(y_pos) if math.ceil(y_pos) <= dest_y else dest_y	
+			new_y = math.ceil(y_pos) if math.ceil(y_pos) <= dest_y else dest_y
+			y_diff = new_y - obj.rect.y
+			obj.rect.y += y_diff
 		
 		if obj.rect.x == dest_x and obj.rect.y == dest_y:
 			target_index += 1
