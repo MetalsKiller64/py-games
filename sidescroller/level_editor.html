@@ -474,6 +474,9 @@
 				level_json["level_width"] = width;
 				level_json["level_height"] = height;
 				
+				$("#width").val(width);
+				$("#height").val(height);
+				
 				stage = create_stage_object(width, height);
 				
 				$(".konvajs-content").attr("style", ($(".konvajs-content").attr("style") + " border: solid;" ));
