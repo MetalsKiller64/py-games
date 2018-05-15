@@ -799,7 +799,7 @@ def show_menu(menu_items, initial = False):
 						else:
 							visible_selected = selected_item - 1
 				elif key in menu_controls["Start"] or button in menu_controls["Start"]:
-					item = menu_items[visible_selected]
+					item = menu_items[selected_item-1]
 					action = item["action"]
 					if len(item["sub_items"]) > 0:
 						break_menu, action, return_values = show_menu(item["sub_items"])
