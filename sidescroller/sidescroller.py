@@ -599,8 +599,10 @@ def load_level(level_file):
 		try:
 			color_rgb = obj[6]
 			color = (color_rgb[0], color_rgb[1], color_rgb[2])
+			if color[0] == None or color[1] == None or color[2] == None:
+				color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
 		except IndexError:
-			color = (255, 107, 0)
+			color = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
 		try:
 			float_speed = int(obj[7])
 		except IndexError:
