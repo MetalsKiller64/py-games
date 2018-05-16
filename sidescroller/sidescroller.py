@@ -1,4 +1,4 @@
-import pygame, random, time, json, sys, argparse, math, subprocess
+import pygame, random, time, json, sys, argparse, math, subprocess, copy
 
 def color_tuple(arg_string):
 	r, g, b = (int(x) for x in arg_string.split(","))
@@ -602,6 +602,8 @@ def load_level(level_file):
 		float_points = obj[5]
 		reverse_points = []
 		reverse_points += (x for x in reversed(float_points))
+		float_points_level_positions = copy.deepcopy(float_points)
+		reverse_points_level_positions = copy.deepcopy(reverse_points)
 		try:
 			color_rgb = obj[6]
 			color = (color_rgb[0], color_rgb[1], color_rgb[2])
@@ -619,8 +621,9 @@ def load_level(level_file):
 		obstacles[k] = sprite
 		objects[k] = sprite
 		if floating:
-			f = {"name": k, "target_index": 1, "reverse": False, "player": False,
-				"points": float_points, "speed": float_speed, "reverse_points": reverse_points}
+			f = {"name": k, "target_index": 1, "reverse": False, "player": False, "level_pos_x": x, "level_pos_y": y,
+				"points": float_points, "speed": float_speed, "reverse_points": reverse_points,
+				"points_level_pos": float_points_level_positions, "reverse_level_pos": reverse_points_level_positions}
 			floaters[k] = f
 	
 	dzones = j["death_zones"]
@@ -959,27 +962,29 @@ while not done:
 		f = floaters[name]
 		obj = obstacles[name]
 		rect = obj.rect
-		x = rect.x;
-		y = rect.y;
+		x = f["level_pos_x"];
+		y = f["level_pos_y"];
 		target_index = f["target_index"]
 		speed = f["speed"]
 		points = f["points"]
+		level_points = f["points_level_pos"]
 		reverse_points = f["reverse_points"]
+		level_points_reverse = f["reverse_level_pos"]
 		reverse = f["reverse"]
 		if not reverse:
 			try:
-				target = points[target_index]
+				target = level_points[target_index]
 			except IndexError:
 				reverse = True
 				target_index = 1
-				target = reverse_points[target_index]
+				target = level_points_reverse[target_index]
 		else:
 			try:
-				target = reverse_points[target_index]
+				target = level_points_reverse[target_index]
 			except IndexError:
 				reverse = False
 				target_index = 1
-				target = points[target_index]
+				target = level_points[target_index]
 		
 		dest_x = target["x"]
 		dest_y = target["y"]
@@ -1035,25 +1040,31 @@ while not done:
 			elif y_diff < 0:
 				p.move("down", speed)
 		
-		if obj.rect.x > dest_x:
+		if x > dest_x:
 			new_x = math.ceil(x_pos) if math.ceil(x_pos) >= dest_x else dest_x
-			x_diff = obj.rect.x - new_x
-			obj.rect.x -= x_diff
+			x_diff = x - new_x
+			obj.move("left", x_diff)
+			x -= x_diff
 		else:
 			new_x = math.ceil(x_pos) if math.ceil(x_pos) <= dest_x else dest_x
-			x_diff = new_x - obj.rect.x
-			obj.rect.x += x_diff
-		if obj.rect.y > dest_y:
+			x_diff = new_x - x
+			obj.move("right", x_diff)
+			x += x_diff
+		if y > dest_y:
 			new_y = math.ceil(y_pos) if math.ceil(y_pos) >= dest_y else dest_y
-			y_diff = obj.rect.y - new_y
-			obj.rect.y -= y_diff
+			y_diff = y - new_y
+			obj.move("up", y_diff)
+			y -= y_diff
 		else:
 			new_y = math.ceil(y_pos) if math.ceil(y_pos) <= dest_y else dest_y
-			y_diff = new_y - obj.rect.y
-			obj.rect.y += y_diff
+			y_diff = new_y - y
+			obj.move("down", y_diff)
+			y += y_diff
 		
-		if obj.rect.x == dest_x and obj.rect.y == dest_y:
+		if x == dest_x and y == dest_y:
 			target_index += 1
+		f["level_pos_x"] = x
+		f["level_pos_y"] = y
 		f["reverse"] = reverse
 		f["target_index"] = target_index
 	
