@@ -63,6 +63,7 @@ class Player(pygame.sprite.Sprite):
 		self.jump_frame_factor = 0
 		self.jump_frame_factor_max = 10
 		self.speed = {"left": 0, "right": 0, "down": 0, "up": 0}
+		self.relative_speed = {"left": 0, "right": 0, "down": 0, "up": 0}
 		self.speed_max = 3
 		self.fall_speed_max = 4
 		self.sprint_max = 6
@@ -106,14 +107,12 @@ class Player(pygame.sprite.Sprite):
 						if self.speed[direction] > 3:
 							self.speed[direction] -= 1
 		if not self.move_left and not self.move_right:
-			for direction in self.speed:
+			for direction in self.relative_speed:
 				if direction == "left" or direction == "right":
-					if self.speed[direction] > 0:
+					if self.relative_speed[direction] > 0:
 						if self.decel_frame >= self.decel_rate:
-							self.speed[direction] -= 1
-						if self.floating:
-							self.speed[direction] = 0
-						self.move(direction, self.speed[direction])
+							self.relative_speed[direction] -= 1
+						self.move(direction, self.relative_speed[direction])
 		if self.decel_frame > self.decel_rate:
 			self.decel_frame = 0
 	
@@ -199,26 +198,26 @@ class Player(pygame.sprite.Sprite):
 
 		if self.move_left:
 			if self.colliding["left"]:
-				self.speed["left"] = 0
+				self.relative_speed["left"] = 0
 				return
 			if self.accel_frame >= self.accel_rate:
-				if self.speed["left"] < speed_max:
-					self.speed["left"] += 1
-					if self.speed["right"] > 0:
-						self.speed["right"] -= 1
+				if self.relative_speed["left"] < speed_max:
+					self.relative_speed["left"] += 1
+					if self.relative_speed["right"] > 0:
+						self.relative_speed["right"] -= 1
 				self.accel_frame = 0
-			self.move("left")
+			self.move("left", self.relative_speed["left"])
 		elif self.move_right:
 			if self.colliding["right"]:
-				self.speed["right"] = 0
+				self.relative_speed["right"] = 0
 				return
 			if self.accel_frame >= self.accel_rate:
-				if self.speed["right"] < speed_max:
-					self.speed["right"] += 1
-					if self.speed["left"] > 0:
-						self.speed["left"] -= 1
+				if self.relative_speed["right"] < speed_max:
+					self.relative_speed["right"] += 1
+					if self.relative_speed["left"] > 0:
+						self.relative_speed["left"] -= 1
 				self.accel_frame = 0
-			self.move("right")
+			self.move("right", self.relative_speed["right"])
  
 	def jump(self):
 		self.floating = False
