@@ -20,6 +20,8 @@
                     0,
                     1
                 ],
+                "Right_stop": [0, 0],
+                "Left_stop": [0, 0],
                 "Start": 7,
                 "Pause": 6
             }
