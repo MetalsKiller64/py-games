@@ -120,14 +120,13 @@ class Player(pygame.sprite.Sprite):
 		events = pygame.event.get()
 		global menu_event
 		speed_max = self.speed_max
-		shift_keys = [pygame.K_LSHIFT, pygame.K_RSHIFT]
-		jump_buttons = [0,1]
-		axes = {"0": {"-1": "left", "1": "right", "0": "stop"}, "1": {"-1": "up", "1": "down", "0": ""}}
-		player_controls = {"Jump": [], "Run": [], "Up": [], "Down": [], "Left": [], "Right": [], "Start": [], "Pause": []}
+		player_controls = {"Jump": [], "Run": [], "Up": [], "Down": [], "Left": [], "Right": [], "Start": [], "Pause": [], "Left_stop": [], "Right_stop": []}
 		for g in controls["gamepad"]:
 			for key in player_controls:
 				player_controls[key].append(g[key])
 		for key in player_controls:
+			if not key in controls["keyboard"]:
+				continue
 			player_controls[key].append(controls["keyboard"][key])
 		for event in events:
 			if event.type == pygame.JOYBUTTONDOWN:
@@ -159,7 +158,7 @@ class Player(pygame.sprite.Sprite):
 					self.move_left = True
 				elif [axis,value] in player_controls["Right"]:
 					self.move_right = True
-				elif not [axis,value] in player_controls["Left"] and not [axis,value] in player_controls["Right"]:
+				elif [axis,value] in player_controls["Left_stop"] or [axis,value] in player_controls["Right_stop"]:
 					self.move_left = False
 					self.move_right = False
 			elif event.type == pygame.QUIT:
@@ -696,10 +695,12 @@ def set_button(name):
 				value = int(event.value)
 				check_button_usage([axis, value], False, pad)
 				if pad not in controls["gamepad"]:
-					new_buttons = {"Jump": None, "Run": None, "Up": None, "Down": None, "Left": None, "Right": None}
+					new_buttons = {"Jump": None, "Run": None, "Up": None, "Down": None, "Left": None, "Right": None, "Left_stop": None, "Right_stop": None}
 					new_buttons[name] = [axis, value]
+					new_buttons[name+"_stop"] = [axis, 0]
 				else:
 					controls["gamepad"][pad][name] = [axis, value]
+					controls["gamepad"][pad][name+"_stop"] = [axis, 0]
 				return "JOY"+str(pad)+"_AXIS"+str(axis)+"_"+str(value)
 			elif event.type == pygame.JOYHATMOTION:
 				pass
