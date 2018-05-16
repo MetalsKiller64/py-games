@@ -135,7 +135,7 @@
 				<div id="sizer" class="sizer">
 					<input id="width" type="number" value=400 title="Breite"></input> X 
 					<input id="height" type="number" value="300" title="Höhe"></input>
-					<button style="margin-top: 10px;" onclick="create_stage()">Anlegen</button>
+					<button style="margin-top: 10px;" onclick="create_stage(undefined, undefined, true)">Neu</button>
 					<input type="file" id="upload_json" accept=".json" class="input_file" oninput="set_level_file()"></input>
 					<label for="upload_json">Level-Datei laden</label>
 					<span id="loaded_level"></span>
@@ -402,25 +402,34 @@
 				return stage;
 			}
 			
-			function create_stage(width = undefined, height = undefined)
+			function create_stage(width = undefined, height = undefined, no_json = false)
 			{
-				var uploaded_json = document.getElementById("upload_json").files;
-				if (uploaded_json.length > 0)
+				if ( no_json == false )
 				{
-					for (i=0; i<uploaded_json.length; i++)
+					var uploaded_json = document.getElementById("upload_json").files;
+					if (uploaded_json.length > 0)
 					{
-						var reader = new FileReader();
-						reader.readAsText(uploaded_json[i], "UTF-8");
-						reader.onload = function(event) {
-							create_stage_from_json(JSON.parse(event.target.result));
+						for (i=0; i<uploaded_json.length; i++)
+						{
+							var reader = new FileReader();
+							reader.readAsText(uploaded_json[i], "UTF-8");
+							reader.onload = function(event) {
+								create_stage_from_json(JSON.parse(event.target.result));
+							}
+							reader.onerror = function (event) {
+								console.log(event.target.result);
+							}
+							//var j = JSON.parse(content);
 						}
-						reader.onerror = function (event) {
-							console.log(event.target.result);
-						}
-						//var j = JSON.parse(content);
+						return;
 					}
-					return;
 				}
+				level_json = {"obstacles": {}, "death_zones": {}, "exit": undefined, "spawn": undefined, "level_width": 1000};
+				objects = {};
+				floats = {};
+				dzones = {};
+				spawn = undefined;
+				exit = undefined;
 				
 				if (width == undefined)
 				{
