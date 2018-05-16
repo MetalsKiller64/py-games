@@ -522,23 +522,30 @@ def check_collision(a, b):
 		else:
 			return "stop"
 
-
-def show_end():
+def enable_pause_controls():
+	global menu_event
+	pause_controls = {"Start": []}
+	for g in controls["gamepad"]:
+		for key in pause_controls:
+			pause_controls[key].append(g[key])
+	for key in pause_controls:
+		pause_controls[key].append(controls["keyboard"][key])
 	for event in pygame.event.get():
 		if event.type == pygame.KEYDOWN:
-			if event.key == pygame.K_ESCAPE:
-				global menu_event
+			if event.key in pause_controls["Start"]:
 				menu_event = True
+		elif event.type == pygame.JOYBUTTONDOWN:
+			if event.button in pause_controls["Start"]:
+				menu_event = True
+
+def show_end():
+	enable_pause_controls()
 	screen.fill((0,0,0))
 	text = font.render("Ende", True, (0, 128, 0))
 	screen.blit(text, (screen.get_width() // 2 - text.get_width(), screen.get_height() // 2 - text.get_height()))
 
 def show_gameover():
-	for event in pygame.event.get():
-		if event.type == pygame.KEYDOWN:
-			if event.key == pygame.K_ESCAPE:
-				global menu_event
-				menu_event = True
+	enable_pause_controls()
 	screen.fill((0,0,0))
 	text = font.render("Game Over", True, (128, 0, 0))
 	screen.blit(text, (screen.get_width() // 2 - text.get_width(), screen.get_height() // 2 - text.get_height()))
