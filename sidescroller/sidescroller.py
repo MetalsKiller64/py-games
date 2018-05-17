@@ -365,6 +365,7 @@ class Player(pygame.sprite.Sprite):
 			new_x = self.rect.x - speed
 			speed, collision_object = self.check_path("left", speed, [new_x, self.rect.y])
 			self.speed[direction] = speed
+			self.relative_speed[direction] = speed
 			self.rect.x -= speed
 			self.level_pos_x -= speed
 			hitbox.rect.x -= speed
@@ -379,6 +380,7 @@ class Player(pygame.sprite.Sprite):
 			new_x = self.rect.x + speed
 			speed, collision_object = self.check_path("right", speed, [new_x, self.rect.y])
 			self.speed[direction] = speed
+			self.relative_speed[direction] = speed
 			self.rect.x += speed
 			self.level_pos_x += speed
 			hitbox.rect.x += speed
