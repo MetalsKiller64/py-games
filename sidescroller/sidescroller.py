@@ -358,14 +358,15 @@ class Player(pygame.sprite.Sprite):
 		return [speed, None]
 				
 	
-	def move(self, direction, speed = None):
+	def move(self, direction, speed = None, use_relative = True):
 		if direction == "left":
 			if speed == None:
 				speed = self.speed["left"]
 			new_x = self.rect.x - speed
 			speed, collision_object = self.check_path("left", speed, [new_x, self.rect.y])
 			self.speed[direction] = speed
-			self.relative_speed[direction] = speed
+			if use_relative:
+				self.relative_speed[direction] = speed
 			self.rect.x -= speed
 			self.level_pos_x -= speed
 			hitbox.rect.x -= speed
@@ -380,7 +381,8 @@ class Player(pygame.sprite.Sprite):
 			new_x = self.rect.x + speed
 			speed, collision_object = self.check_path("right", speed, [new_x, self.rect.y])
 			self.speed[direction] = speed
-			self.relative_speed[direction] = speed
+			if use_relative:
+				self.relative_speed[direction] = speed
 			self.rect.x += speed
 			self.level_pos_x += speed
 			hitbox.rect.x += speed
@@ -1033,9 +1035,9 @@ while not done:
 		if player_carrying:
 			x_diff = p.rect.x - math.ceil(player_x)
 			if x_diff > 0:
-				p.move("left", speed)
+				p.move("left", speed, use_relative=False)
 			elif x_diff < 0:
-				p.move("right", speed)
+				p.move("right", speed, use_relative=False)
 			y_diff = p.rect.y - math.ceil(player_y)
 			if y_diff > 0:
 				p.move("up", speed)
