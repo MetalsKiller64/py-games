@@ -1,4 +1,4 @@
-import pygame, random, time, json, sys, argparse, math, subprocess, copy
+import pygame, random, time, json, sys, argparse, math, subprocess, copy, os
 
 def color_tuple(arg_string):
 	r, g, b = (int(x) for x in arg_string.split(","))
@@ -652,7 +652,7 @@ def save_config():
 
 def list_levels():
 	json_list = []
-	file_list = subprocess.run(["ls"], stdout=subprocess.PIPE, universal_newlines=True).stdout.strip().split("\n")
+	file_list = os.listdir()
 	for item in file_list:
 		if item.endswith(".json"):
 			if item == "config.json":
