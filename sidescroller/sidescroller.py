@@ -1,4 +1,4 @@
-import pygame, random, time, json, sys, argparse, math, subprocess, copy, os
+import pygame, random, json, sys, argparse, math, copy, os, traceback
 
 def color_tuple(arg_string):
 	r, g, b = (int(x) for x in arg_string.split(","))
@@ -654,7 +654,7 @@ def save_config():
 
 def list_levels():
 	json_list = []
-	file_list = os.listdir()
+	file_list = sorted(os.listdir())
 	for item in file_list:
 		if item.endswith(".json"):
 			if item == "config.json":
@@ -909,7 +909,12 @@ while not done:
 				all_sprite_objects.empty()
 				death_zones.empty()
 				level_name = return_values+".json"
-				exit, obstacles, objects, spawn, level_width, level_height, floaters = load_level(level_name)
+				try:
+					exit, obstacles, objects, spawn, level_width, level_height, floaters = load_level(level_name)
+				except:
+					print (traceback.format_exc())
+					menu_event = True
+					continue
 				ending = False
 				gameover = False
 				spawn_x = spawn[0]
