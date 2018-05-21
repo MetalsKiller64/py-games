@@ -359,6 +359,8 @@ class Player(pygame.sprite.Sprite):
 				
 	
 	def move(self, direction, speed = None, use_relative = True):
+		scroll_horizontal = 45 / 100 * screen_width
+		scroll_vertical = 45 / 100 * screen_height
 		if direction == "left":
 			if speed == None:
 				speed = self.speed["left"]
@@ -371,7 +373,7 @@ class Player(pygame.sprite.Sprite):
 			self.level_pos_x -= speed
 			hitbox.rect.x -= speed
 			self.check_ground()
-			if self.rect.x <= 100 and self.level_pos_x >= 100:
+			if self.rect.x <= scroll_horizontal and self.level_pos_x >= scroll_horizontal:
 				self.rect.x += speed
 				hitbox.rect.x += speed
 				all_sprite_objects.update("move", ["right", speed])
@@ -387,7 +389,7 @@ class Player(pygame.sprite.Sprite):
 			self.level_pos_x += speed
 			hitbox.rect.x += speed
 			self.check_ground()
-			if self.rect.x >= (screen_width - 100) and self.level_pos_x <= (level_width - 100):
+			if self.rect.x >= (screen_width - scroll_horizontal) and self.level_pos_x <= (level_width - scroll_horizontal):
 				self.rect.x -= speed
 				hitbox.rect.x -= speed
 				all_sprite_objects.update("move", ["left", speed])
@@ -400,7 +402,7 @@ class Player(pygame.sprite.Sprite):
 			self.level_pos_y -= speed
 			hitbox.rect.y -= speed
 			self.check_ground()
-			if self.rect.y <= 100 and self.level_pos_y >= level_height:
+			if self.rect.y <= scroll_vertical and self.level_pos_y <= level_height:
 				self.rect.y += speed
 				hitbox.rect.y += speed
 				all_sprite_objects.update("move", ["down", speed])
@@ -413,7 +415,7 @@ class Player(pygame.sprite.Sprite):
 			self.level_pos_y += speed
 			hitbox.rect.y += speed
 			self.check_ground()
-			if self.rect.y >= (screen_height - 100) and self.level_pos_y <= (level_height - 100):
+			if self.rect.y >= (screen_height - scroll_vertical) and self.level_pos_y <= (level_height - scroll_vertical):
 				self.rect.y -= speed
 				hitbox.rect.y -= speed
 				all_sprite_objects.update("move", ["up", speed])
@@ -1085,7 +1087,7 @@ while not done:
 		show_end()
 		ending = True
 
-	if p.rect.y >= 300:
+	if p.level_pos_y >= level_height:
 		p.dead = True
 	
 	if p.block_cycle >= 10:
