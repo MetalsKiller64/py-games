@@ -119,6 +119,7 @@ class Player(pygame.sprite.Sprite):
 	def handle_key_event(self):
 		events = pygame.event.get()
 		global menu_event
+		global single_frame
 		speed_max = self.speed_max
 		player_controls = {"Jump": [], "Run": [], "Up": [], "Down": [], "Left": [], "Right": [], "Start": [], "Pause": [], "Left_stop": [], "Right_stop": []}
 		for g in controls["gamepad"]:
@@ -177,6 +178,8 @@ class Player(pygame.sprite.Sprite):
 					self.move_left = True
 				elif key in player_controls["Right"]:
 					self.move_right = True
+				elif key == pygame.K_F1:
+					single_frame = True
 			elif event.type == pygame.KEYUP:
 				key = event.key
 				if key in player_controls["Run"]:
@@ -900,8 +903,24 @@ else:
 dpass = 0
 done = False
 menu_event = False
+single_frame = False
 while not done:
 	clock.tick(frame_rate)
+	if single_frame:
+		escape = False
+		while not escape:
+			events = pygame.event.get()
+			for event in events:
+				if event.type == pygame.KEYDOWN:
+					print (event)
+					if event.key == pygame.K_SPACE:
+						escape = True
+						break
+					elif event.key == pygame.K_F1:
+						single_frame = False
+						escape = True
+						break
+	
 	if initial or menu_event:
 		menu_event = False
 		action_trigger, action, return_values = show_menu(menu_items, initial)
