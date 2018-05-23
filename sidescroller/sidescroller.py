@@ -95,7 +95,7 @@ class Player(pygame.sprite.Sprite):
 			self.jump()
 		elif self.falling:
 			self.fall()
-		elif not self.floating:
+		elif not self.floating and not self.jumping:
 			self.last_floor = None
 			self.falling = True
 		
@@ -136,7 +136,6 @@ class Player(pygame.sprite.Sprite):
 				elif button in player_controls["Jump"]:
 					if not self.jumping and self.speed["down"] == 0:
 						self.speed["up"] = 4
-						self.jumping = True
 						self.jump_button_pressed = True
 						self.jump()
 				elif button in player_controls["Pause"] or button in player_controls["Start"]:
@@ -172,7 +171,6 @@ class Player(pygame.sprite.Sprite):
 				elif key in player_controls["Jump"]:
 					if not self.jumping and self.speed["down"] == 0:
 						self.speed["up"] = 4
-						self.jumping = True
 						self.jump_button_pressed = True
 						self.jump()
 				elif key in player_controls["Left"]:
@@ -220,6 +218,7 @@ class Player(pygame.sprite.Sprite):
  
 	def jump(self):
 		self.floating = False
+		self.falling = False
 		#self.floater = None
 		self.jumping = True
 		self.jump_block = True
@@ -244,7 +243,6 @@ class Player(pygame.sprite.Sprite):
 			self.jumping = False
 			self.jump_frames = 0
 			self.jump_frame_factor = 0
-			self.fall()
 		
 		self.move("up")
 	
@@ -267,7 +265,7 @@ class Player(pygame.sprite.Sprite):
 					self.last_floor = collision
 					self.speed["down"] = 0
 					break
-		if self.last_floor == None:
+		if self.last_floor == None and not self.jumping:
 			self.falling = True
 			self.floating = False
 	
@@ -280,6 +278,7 @@ class Player(pygame.sprite.Sprite):
 		h_y = hitbox.rect.y
 		if direction == "left":
 			for x in reversed(range(new_x, current_x)):
+				hitbox.rect.x = h_x
 				x_diff = current_x - x
 				hitbox.rect.x -= x_diff
 				colliding_objects = pygame.sprite.spritecollide(hitbox, sprites, False)
@@ -300,6 +299,7 @@ class Player(pygame.sprite.Sprite):
 							return [x_diff, collision]
 		elif direction == "right":
 			for x in range(current_x, new_x):
+				hitbox.rect.x = h_x
 				x_diff = x - current_x
 				hitbox.rect.x += x_diff
 				colliding_objects = pygame.sprite.spritecollide(hitbox, sprites, False)
@@ -321,6 +321,7 @@ class Player(pygame.sprite.Sprite):
 		elif direction == "up":
 			#self.colliding["top"] = True
 			for y in reversed(range(new_y, current_y)):
+				hitbox.rect.y = h_y
 				y_diff = current_y - y
 				hitbox.rect.y -= y_diff
 				colliding_objects = pygame.sprite.spritecollide(hitbox, sprites, False)
@@ -332,14 +333,13 @@ class Player(pygame.sprite.Sprite):
 							hitbox.rect.y = h_y
 							self.colliding["top"] = True
 							self.jumping = False
-							self.falling = True
-							self.jump_cycle = 0
 							if p.floating:
 								return [0, collision]
 							return [y_diff, collision]
 		elif direction == "down":
 			#self.colliding["bottom"] = True
 			for y in range(current_y, new_y):
+				hitbox.rect.y = h_y
 				y_diff = y - current_y
 				hitbox.rect.y += y_diff
 				colliding_objects = pygame.sprite.spritecollide(hitbox, sprites, False)
