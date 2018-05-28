@@ -82,11 +82,14 @@
 				position: fixed;
 				top: 0px;
 				z-index: 1;
+				background-color: white;
+				border-bottom-right-radius: 20px;
+				border-bottom-left-radius: 20px;
+				border: none;
 			}
 			
 			.tools {
 				/*height: 10%;*/
-				background-color: white;
 				border: solid;
 				border-color: black;
 				border-width: 2px;
@@ -96,11 +99,15 @@
 				border-top: none;
 			}
 			
-			.toggle_button {
+			.toggle_button_container {
 				position: fixed;
-				left: 90%;
+				left: 96%;
 				z-index: 1;
 				top: 3px;
+				text-align: right;
+			}
+			.toggle_button{
+				background: white; 
 			}
 			
 			.tab {
@@ -111,6 +118,10 @@
 				border-top: none;
 				border-top-left-radius: 0px;
 				border-top-right-radius: 0px;
+				background: white;
+			}
+			.tab_button_extra {
+				background: white;
 			}
 			
 			.hidden {
@@ -182,12 +193,16 @@
 				</div>
 			</div>
 		</div>
-		<button id="hide_tools" class="toggle_button" onclick="toggle_tools()">
-			<img id="arrow_up" src="./images/arrow_up.png"/>
-		</button>
-		<button id="show_tools" class="toggle_button hidden" onclick="toggle_tools()">
-			<img id="arrow_down" src="./images/arrow_down.png/"/>
-		</button>
+		<div class="toggle_button_container">
+			<button id="hide_tools" class="toggle_button" onclick="toggle_tools()">
+				<img id="arrow_up" src="./images/arrow_up.png"/>
+			</button>
+			<button id="show_tools" class="toggle_button hidden" onclick="toggle_tools()">
+				<img id="arrow_down" src="./images/arrow_down.png/"/>
+			</button>
+			<br>
+			<button id="toggle_grid" class="toggle_button" onclick="toggle_grid()" title="Raster ein/ausblenden">#</button>
+		</div>
 		<div id="container" class="container"></div>
 		
 		<script>
@@ -233,6 +248,18 @@
 					$(button_hide).addClass("hidden");
 					$(button_show).removeClass("hidden");
 				}
+			}
+			
+			function toggle_grid() {
+				if (grid_layer.attrs.visible == true)
+				{
+					grid_layer.hide();
+				}
+				else
+				{
+					grid_layer.show();
+				}
+				stage.draw();
 			}
 			
 			function create_grid()
