@@ -198,6 +198,7 @@
 			});*/
 			
 			var stage = undefined;
+			var grid_layer = undefined;
 			var level_json = {"obstacles": {}, "death_zones": {}, "exit": undefined, "spawn": undefined, "level_width": 1000};
 			var objects = {};
 			var floats = {};
@@ -232,6 +233,41 @@
 					$(button_hide).addClass("hidden");
 					$(button_show).removeClass("hidden");
 				}
+			}
+			
+			function create_grid()
+			{
+				var width = stage.attrs.width;
+				var height = stage.attrs.height;
+				var columns = width / 5;
+				var lines = height / 5;
+				grid_layer.removeChildren();
+				var x = 5;
+				var y = 5;
+				for (var col = 0; col < columns; col++)
+				{
+					var line = new Konva.Line({
+						points: [x, 0, x, height],
+						fill: "black",
+						stroke: "black",
+						strokeWidth: 0.5
+					});
+					grid_layer.add(line);
+					x += 5;
+				}
+				
+				for (var lin = 0; lin < lines; lin++)
+				{
+					var line = new Konva.Line({
+						points: [0, y, width, y],
+						fill: "black",
+						stroke: "black",
+						strokeWidth: 0.5
+					});
+					grid_layer.add(line);
+					y += 5;
+				}
+				grid_layer.draw();
 			}
 			
 			function change_tool_view(view){
@@ -399,6 +435,12 @@
 					width: width,
 					height: height
 				});
+				grid_layer = new Konva.Layer({
+					visible: true,
+					opacity: 1
+				});
+				create_grid();
+				stage.add(grid_layer);
 				return stage;
 			}
 			
@@ -647,7 +689,7 @@
 					height: box_height,
 					fill: color,
 					stroke: box_stroke,
-					strokeWidth: 4,
+					strokeWidth: 1,
 					dash: box_dash,
 					draggable: true
 				});
@@ -658,6 +700,15 @@
 				});
 				box.on('mouseout', function() {
 					document.body.style.cursor = 'default';
+				});
+				box.on("dragend", function(event) {
+					var new_x = Math.round(event.target.attrs.x / 5) * 5;
+					var new_y = Math.round(event.target.attrs.y / 5) * 5;
+					event.target.position({
+						x: new_x,
+						y: new_y
+					});
+					stage.draw()
 				});
 				box.on('click', function(event) {
 					if (last_selected != undefined)
@@ -784,6 +835,18 @@
 					line.attrs.points[1] = event.target.attrs.y + height / 2;
 					event.target.float_points[0] = {"x": event.target.attrs.x, "y": event.target.attrs.y};
 				});
+				float.on("dragend", function (event) {
+					var new_x = Math.round(event.target.attrs.x / 5) * 5;
+					var new_y = Math.round(event.target.attrs.y / 5) * 5;
+					event.target.position({
+						x: new_x,
+						y: new_y
+					});
+					line.attrs.points[0] = new_x + width / 2;
+					line.attrs.points[1] = new_y + height / 2;
+					event.target.float_points[0] = {"x": new_x, "y": new_y};
+					stage.draw()
+				})
 				float.on('click', function(event) {
 					if (last_selected != undefined)
 					{
@@ -902,13 +965,27 @@
 					});
 					
 					box.on("dragmove", function (event) {
-						var new_x = event.target.attrs.x + width / 2;
-						var new_y = event.target.attrs.y + height / 2;
-						line.attrs.points[x_index] = new_x;
-						line.attrs.points[x_index+1] = new_y;
-						selected_element.float_points[points_index] = {"x": event.target.attrs.x, "y": event.target.attrs.y};
+						var new_x = Math.round(event.target.attrs.x / 5) * 5;
+						var new_y = Math.round(event.target.attrs.y / 5) * 5;
+						var new_line_x = new_x + width / 2;
+						var new_line_y = new_y + height / 2;
+						line.attrs.points[x_index] = new_line_x;
+						line.attrs.points[x_index+1] = new_line_y;
+						selected_element.float_points[points_index] = {"x": new_x, "y": new_y};
 						layer.draw();
 					});
+					box.on("dragend", function (event) {
+						var new_x = Math.round(event.target.attrs.x / 5) * 5;
+						var new_y = Math.round(event.target.attrs.y / 5) * 5;
+						event.target.position({
+							x: new_x,
+							y: new_y
+						});
+						line.attrs.points[x_index] = new_x + width / 2;
+						line.attrs.points[x_index+1] = new_y + height / 2;
+						selected_element.float_points[points_index] = {"x": new_x, "y": new_y};
+						stage.draw()
+					})
 					
 					layer.add(box);
 					layer.draw();
