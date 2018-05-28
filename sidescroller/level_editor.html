@@ -690,10 +690,18 @@
 				if (box_x == undefined)
 				{
 					var rectX = $(document).scrollLeft() + 100;
+					if (rectX >= stage.attrs.width)
+					{
+						rectX = stage.attrs.width - box_width;
+					}
 				}
 				if (box_y == undefined)
 				{
 					var rectY = $(document).scrollTop() + 100;
+					if (rectY >= stage.attrs.height)
+					{
+						rectY = stage.attrs.height - box_height;
+					}
 				}
 				
 				if (color == undefined)
@@ -818,6 +826,15 @@
 				{
 					x = $(document).scrollLeft() + 100;
 					y = $(document).scrollTop() + 100;
+					
+					if (x >= stage.attrs.width)
+					{
+						x = stage.attrs.width - width;
+					}
+					if (y >= stage.attrs.height)
+					{
+						y = stage.attrs.height - height;
+					}
 				}
 				
 				var color_rgb = parse_rgb_from_hex(color);
