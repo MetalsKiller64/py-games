@@ -87,6 +87,9 @@ class Player(pygame.sprite.Sprite):
 		self.move_left = False
 		self.move_right	= False
 	
+	def get_position(self):
+		return {"x": self.level_pos_x, "y": self.level_pos_y+self.p_height}
+	
 	def draw(self, surface):
 		pygame.draw.rect(surface, (255, 7, 0), self.rect)
 	
@@ -120,6 +123,7 @@ class Player(pygame.sprite.Sprite):
 		events = pygame.event.get()
 		global menu_event
 		global single_frame
+		global player_track
 		speed_max = self.speed_max
 		player_controls = {"Jump": [], "Run": [], "Up": [], "Down": [], "Left": [], "Right": [], "Start": [], "Pause": [], "Left_stop": [], "Right_stop": []}
 		for g in controls["gamepad"]:
@@ -138,6 +142,9 @@ class Player(pygame.sprite.Sprite):
 					if not self.jumping and self.speed["down"] == 0:
 						self.speed["up"] = 4
 						self.jump_button_pressed = True
+						if not "jumps" in player_track["markers"]:
+							player_track["markers"]["jumps"] = []
+						player_track["markers"]["jumps"].append(self.get_position())
 						self.jump()
 				elif button in player_controls["Pause"] or button in player_controls["Start"]:
 					menu_event = True
@@ -173,6 +180,9 @@ class Player(pygame.sprite.Sprite):
 					if not self.jumping and self.speed["down"] == 0:
 						self.speed["up"] = 4
 						self.jump_button_pressed = True
+						if not "jumps" in player_track["markers"]:
+							player_track["markers"]["jumps"] = []
+						player_track["markers"]["jumps"].append(self.get_position())
 						self.jump()
 				elif key in player_controls["Left"]:
 					self.move_left = True
@@ -657,6 +667,13 @@ def save_config():
 	json.dump(config, f, indent=4)
 	f.close()
 
+def save_level(level_name, player_track):
+	level = load_json(level_name)
+	level["player_track"] = player_track
+	f = open(level_name, "w")
+	json.dump(level, f, indent=4)
+	f.close()
+
 def list_levels():
 	json_list = []
 	file_list = sorted(os.listdir())
@@ -904,6 +921,9 @@ dpass = 0
 done = False
 menu_event = False
 single_frame = False
+player_track = {"markers": {}}
+track_counter = 0
+track_flip = False
 while not done:
 	clock.tick(frame_rate)
 	if single_frame:
@@ -923,6 +943,10 @@ while not done:
 	
 	if initial or menu_event:
 		menu_event = False
+		try:
+			save_level(level_name, player_track)
+		except TypeError:
+			pass
 		action_trigger, action, return_values = show_menu(menu_items, initial)
 		if action_trigger:
 			if action == "load_level":
@@ -950,13 +974,23 @@ while not done:
 			continue
 		dpass = 0
 		p.dead = False
+		if track_counter < 2:
+			track_counter += 1
+		else:
+			track_flip = True
 		exit, obstacles, objects, spawn, level_width, level_height, floaters, gameover = respawn()
 	if ending:
 		show_end()
+		if track_counter != 0:
+			save_level(level_name, player_track)
+		track_counter = 0
 		pygame.display.flip()
 		continue
 	if gameover:
 		show_gameover()
+		if track_counter != 0:
+			save_level(level_name, player_track)
+		track_counter = 0
 		pygame.display.flip()
 		continue
 	screen.fill(bg_color)
@@ -1102,7 +1136,7 @@ while not done:
 	if hitbox.rect.colliderect(exit):
 		p.exit_reached = True
 	
-	if p.exit_reached:
+	if p.exit_reached and not ending:
 		show_end()
 		ending = True
 
@@ -1117,3 +1151,18 @@ while not done:
 	
 	show_live_count()
 	pygame.display.flip()
+	if not track_counter in player_track:
+		player_track[track_counter] = [p.get_position()]
+	else:
+		player_position = p.get_position()
+		if track_flip:
+			for track_number in player_track:
+				track = player_track[track_number]
+				decreased_number = track_number - 1
+				new_number = decreased_number if decreased_number >= 0 else 0
+				player_track[new_number] = track
+			player_track[track_counter] = [player_position]
+			track_flip = False
+		else:
+			if player_position != player_track[track_counter][-1]:
+				player_track[track_counter].append(player_position)
