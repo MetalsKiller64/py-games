@@ -141,6 +141,9 @@
 				<div id="tab_specs" class="tab">
 					<button id="tab_button_specs" class="tab_button" onclick="change_tool_view('specs')">Eigenschaften</button>
 				</div>
+				<div id="tab_specs" class="tab">
+					<button id="tab_button_view" class="tab_button" onclick="change_tool_view('view')">Ansicht</button>
+				</div>
 			</div>
 			<div id="level" class="tools tool_container hidden">
 				<div id="sizer" class="sizer">
@@ -183,13 +186,23 @@
 				</div>
 			</div>
 			
-			<div id="specs" class="hidden tools tool_container hidden">
+			<div id="specs" class="hidden tools tool_container">
 				<div>
 					<input id="spec_width" type="number" title="Breite"/>X
 					<input id="spec_height" type="number" title="Höhe"/>
 					<button id="update_specs" onclick="update_object_specs()" title="wende Anpassungen am Objekt an">aktualisieren</button>
 					<input id="spec_color" type="color" value="#00D2FF" onchange="update_object_color('#spec_color')"/>
 					<button id="spec_delete" onclick="delete_object()">entfernen</button>
+				</div>
+			</div>
+			<div id="view" class="hidden tools tool_container">
+				<div>
+					<span>
+						Tracks:
+						1<input id="toggle_track_0" type="checkbox" checked="true" onchange="toggle_track(0)"/>
+						2<input id="toggle_track_1" type="checkbox" checked="true" onchange="toggle_track(1)"/>
+						3<input id="toggle_track_2" type="checkbox" checked="true" onchange="toggle_track(2)"/>
+					</span>
 				</div>
 			</div>
 		</div>
@@ -218,6 +231,8 @@
 			var objects = {};
 			var floats = {};
 			var dzones = {};
+			var player_tracks = {};
+			var track_colors = ["#FF1A1A", "#391AFF", "#1AFF31"];
 			var spawn = undefined;
 			var exit = undefined;
 			var last_selected = undefined;
@@ -227,8 +242,30 @@
 			
 			function init()
 			{
-				set_level_file();
-				create_stage();
+				var stage_created = set_level_file();
+				if (stage_created == false)
+				{
+					create_stage();
+				}
+			}
+			
+			function toggle_track(track_number)
+			{
+				console.log(track_number);
+				var line = player_tracks[track_number];
+				console.log($("#toggle_track_"+track_number));
+				console.log($("#toggle_track_"+track_number).prop("checked"));
+				if ( $("#toggle_track_"+track_number).prop("checked") == false )
+				{
+					console.log("hide");
+					line.parent.hide();
+				}
+				else
+				{
+					console.log("show");
+					line.parent.show();
+				}
+				stage.draw();
 			}
 			
 			function toggle_tools()
@@ -311,7 +348,9 @@
 				if (uploaded_json.length > 0)
 				{
 					create_stage();
+					return true;
 				}
+				return false;
 			}
 			
 			function parse_rgb_from_hex(color)
@@ -548,6 +587,9 @@
 				var exit = json_object["exit"];
 				var width = json_object["level_width"];
 				var height = json_object["level_height"];
+				var player_track = json_object["player_track"];
+				var markers = player_track["markers"];
+				var jump_markers = markers["jumps"];
 				
 				level_json["level_width"] = width;
 				level_json["level_height"] = height;
@@ -558,7 +600,7 @@
 				stage = create_stage_object(width, height);
 				
 				$(".konvajs-content").attr("style", ($(".konvajs-content").attr("style") + " border: solid;" ));
-				for (key in obstacles)
+				for (var key in obstacles)
 				{
 					var obj = obstacles[key];
 					var x = obj[0];
@@ -583,7 +625,7 @@
 					}
 				}
 				
-				for (key in dzones)
+				for (var key in dzones)
 				{
 					var obj = dzones[key];
 					var x = obj[0];
@@ -593,12 +635,47 @@
 					add_death_zone(x, y, w, h);
 				}
 				
+				for (var key in player_track)
+				{
+					if (key == "markers")
+					{
+						continue;
+					}
+					var track = player_track[key];
+					var color = track_colors[key];
+					for (var index in track)
+					{
+						var point = track[index];
+						var x = point["x"];
+						var y = point["y"];
+						var circle = undefined;
+						for (var index in jump_markers)
+						{
+							var marker = jump_markers[index];
+							if (JSON.stringify(point) == JSON.stringify(marker) )
+							{
+								circle = new Konva.Circle({
+									x: marker["x"],
+									y: marker["y"],
+									radius: 3,
+									fill: "#FF1AE8",
+									stroke: 'black',
+									strokeWidth: 1
+								});
+								break;
+							}
+						}
+						add_track_point(x, y, key, color, circle);
+					}
+				}
+				
 				var spawn_x = spawn[0];
 				var spawn_y = spawn[1];
 				add_box(7, 20, "#FFFFFF", "spawn", spawn_x, spawn_y);
 				var exit_x = exit[0];
 				var exit_y = exit[1];
 				add_box(7, 20, "#8EFF8A", "exit", exit_x, exit_y);
+				stage.draw();
 			}
 			
 			function recreate_stage(new_objects, new_floats)
@@ -650,6 +727,33 @@
 					var eh = exit.attrs.height;
 					var ec = exit.attrs.fill;
 					add_box(ew, eh, ec, "exit", ex, ey);
+				}
+			}
+			
+			function add_track_point(x, y, relation, color, circle = undefined)
+			{
+				if (player_tracks[relation] == undefined)
+				{
+					console.log("new line");
+					player_tracks[relation] = new Konva.Line({
+						points: [x, y],
+						stroke: color,
+						strokeWidth: 2,
+						draggable: true,
+						tension: 1
+					});
+					var layer = new Konva.Layer();
+					layer.add(player_tracks[relation]);
+					stage.add(layer);
+				}
+				else
+				{
+					player_tracks[relation].attrs.points.push(x);
+					player_tracks[relation].attrs.points.push(y);
+				}
+				if (circle != undefined)
+				{
+					player_tracks[relation].parent.add(circle);
 				}
 			}
 			
