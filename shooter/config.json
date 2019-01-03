@@ -1,0 +1,38 @@
+{
+    "controls": {
+        "gamepad": [
+            {
+                "Shoot": 1,
+                "Up": [
+                    1,
+                    -1
+                ],
+                "Down": [
+                    1,
+                    1
+                ],
+                "Left": [
+                    0,
+                    -1
+                ],
+                "Right": [
+                    0,
+                    1
+                ],
+                "horizontal_stop": [0, 0],
+                "vertical_stop": [1, 0],
+                "Start": 7,
+                "Pause": 6
+            }
+        ],
+        "keyboard": {
+            "Shoot": 32,
+            "Up": 273,
+            "Down": 274,
+            "Left": 276,
+            "Right": 275,
+            "Start": 13,
+            "Pause": 27
+        }
+    }
+}
